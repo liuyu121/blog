@@ -1,5 +1,5 @@
 ---
-title: "Linux Cron Mail"
+title: "Linux 下使用 Cron Mail"
 date: 2019-05-24T10:01:35+08:00
 draft: false
 categories: ["Linux"]

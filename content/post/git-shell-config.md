@@ -1,5 +1,5 @@
 ---
-title: "Git Shell Config"
+title: "Git Shell 便捷设置"
 date: 2015-04-12T19:26:53+08:00
 draft: false
 categories: ["Git"]
