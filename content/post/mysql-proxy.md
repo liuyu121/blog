@@ -1,6 +1,6 @@
 ---
 title: "Mysql Proxy"
-date: 2020-07-06T19:44:49+08:00
+date: 2018-08-26T15:44:49+08:00
 draft: false
 categories: ["MySQL"]
 tags: ["mysql","database"]
