@@ -1,6 +1,10 @@
-[submodule "hugo-theme-even"]
-	path = hugo-theme-even
-	url = https://github.com/olOwOlo/hugo-theme-even
 [submodule "themes/even"]
 	path = themes/even
 	url = https://github.com/olOwOlo/hugo-theme-even
+[submodule "themes/ananke"]
+	path = themes/ananke
+	url = https://github.com/budparr/gohugo-theme-ananke.git
+[submodule "public"]
+	path = public
+	url = https://github.com/liuyu121/liuyu121.github.io.git
+	branch = master
