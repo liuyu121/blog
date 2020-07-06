@@ -7,7 +7,9 @@ weight: 50
 
 ---
 
-* `mysql`、`redis`、`kafka`、`es`
-*  `php`、`go`、`python`
-*  `linux`、`shell`
+So Sally can wait ...
 
+* `mysql`、`redis`、`kafka`、`es`
+* `php`、`go`、`python`
+* `linux`、`shell`
+* `data structures`、`algorit`
