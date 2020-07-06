@@ -3,7 +3,7 @@ title: "Linux Cron Mail"
 date: 2019-05-24T10:01:35+08:00
 draft: false
 categories: ["Linux"]
-tags: ["linux","cron","mail"]
+tags: ["linux","shell"]
 ---
 
 注：本文对一些信息做了处理，不影响核心逻辑。

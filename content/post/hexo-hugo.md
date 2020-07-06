@@ -3,7 +3,7 @@ title: "Hexo 迁移至 Hugo"
 date: 2020-07-06T18:45:20+08:00
 draft: false
 categories: ["Blog"]
-tags: ["hugo","blog","hugo"]
+tags: ["blog"]
 
 ---
 

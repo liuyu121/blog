@@ -3,7 +3,7 @@ title: "Git Submodule 简单使用"
 date: 2019-04-11T18:42:45+08:00
 draft: false
 categories: ["Git"]
-tags: ["git","git-submodule","blog","hexo"]
+tags: ["git","git-submodule","blog"]
 ---
 
 
