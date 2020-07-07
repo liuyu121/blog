@@ -31,6 +31,7 @@ publish() {
 }
 
 deploy() {
+    echo "=============== deploy ==============="
     set +e
     git add .
     git commit -m "update"
