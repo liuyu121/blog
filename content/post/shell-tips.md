@@ -72,7 +72,7 @@ vim set nobomb
 * 统计某一列值大于等于 `5000` 的总行数：
 
 ```shell
-cat diamond.csv | grep -iv momo |  awk -F ',' '{if($2>=5000)print }' | wc -l
+cat diamond.csv | grep -iv test |  awk -F ',' '{if($2>=5000)print }' | wc -l
 ```
 
 ## 进程
