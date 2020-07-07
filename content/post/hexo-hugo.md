@@ -7,6 +7,8 @@ tags: ["blog"]
 
 ---
 
+## 快速开始
+
 `blog` 之前用的是 `hexo` 来实现，但换新环境都要搞一大堆东西，很麻烦，所以荒废了好久没写什么东西了。
 
 这段时间打算迁移到 `hugo`[^pa1]，一个 `go` 写的生成静态博客的工具，生成速度极快，且能关联到 `github-pages`。
@@ -14,6 +16,8 @@ tags: ["blog"]
 这篇文章简单记录如何使用 `hugo`，以及如何与 `github-pages` 打通。
 
 `hugo` 具体使用可参考官方文档，上手及其简单，我使用的是 `next ` 主题[^pa2]。
+
+## github pages
 
 配置 `github-pages` 也较简单，且支持多种配置方式，我采用了`GitHub User or Organization Pages`[^pa3] 的方式，大体步骤如下：
 
@@ -37,6 +41,20 @@ git submodule add  -f  -b master https://github.com/liuyu121/liuyu121.github.io.
 ```
 
 以上，操作简单方便，没有一堆 `nodejs` 的依赖，生成速度极快，可见即所得。
+
+## 添加评论系统
+
+开源的评论系统很多，我选择用 `utterances`，一个依托于 `github-issues` 的评论系统，配置及其简单。
+
+修改 `config.toml` 文件，这里我直接使用 `liuyu121.github.io` 作为 `repo`。
+
+注意：这里的 `repo` 填写的是名称，而不是全地址，否则会加载不出来。
+
+```toml
+  [params.utterances]       # https://utteranc.es/
+    owner = "liuyu121"              # Your GitHub ID
+    repo = "liuyu121.github.io"
+```
 
 [^pa1]: [hugo 官网](https://gohugo.io/)
 
