@@ -15,6 +15,8 @@ publish() {
     # Add changes to git.
     git add .
     
+    set +e
+
     # Commit changes.
     msg="rebuilding site $(date)"
     if [ -n "$*" ]; then
@@ -22,11 +24,14 @@ publish() {
     fi
     git commit -m "$msg"
     
-    # Push source and build repos.
-    git push origin master
+    if [ $? = 0 ]; then
+        # Push source and build repos.
+        git push origin master
+    fi
 }
 
 deploy() {
+    set +e
     git add .
     git commit -m "update"
     git push origin master
@@ -40,5 +45,6 @@ elif [ "$cmd" = "d" ]; then
     deploy
 else
     publish
+    cd ..
     deploy
 fi
