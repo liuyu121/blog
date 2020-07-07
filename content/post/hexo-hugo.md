@@ -61,7 +61,12 @@ git submodule add  -f  -b master https://github.com/liuyu121/liuyu121.github.io.
 改写了下 官方的 `deploy.sh`，支持 `publish` 与 `deploy`，脚本很简单，本质就是封装一系列命令。
 
 ```shell
-./de
+$ ./deploy.sh
+Usage: deploy.sh
+        a : publish && deploy
+        p : publish
+        d : deploy
+```
 
 [^pa1]: [hugo 官网](https://gohugo.io/)
 
