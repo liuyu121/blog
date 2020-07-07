@@ -1,6 +1,8 @@
 #!/bin/sh
 
 publish() {
+    echo "=============== publish ==============="
+
     # If a command fails then the deploy stops
     set -e
 
