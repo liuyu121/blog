@@ -1,7 +1,7 @@
 #!/bin/sh
 
 publish() {
-    echo "=============== publish ==============="
+    echo "=============== publish ===============\n"
 
     # If a command fails then the deploy stops
     set -e
@@ -33,7 +33,7 @@ publish() {
 }
 
 deploy() {
-    echo "=============== deploy ==============="
+    echo "=============== deploy ===============\n"
     set +e
     git add .
     git commit -m "update"
@@ -48,6 +48,9 @@ elif [ "$cmd" = "d" ]; then
     deploy
 else
     publish
+
+    echo "\n"
     cd ..
+
     deploy
 fi
