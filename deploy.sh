@@ -1,5 +1,12 @@
 #!/bin/sh
 
+usage(){
+    echo "Usage: `basename $0`
+        a : publish && deploy
+        p : publish
+        d : deploy"
+}
+
 publish() {
     echo "============================== publish start ==============================\n"
 
@@ -48,11 +55,13 @@ if [ "$cmd" = "p" ]; then
     publish
 elif [ "$cmd" = "d" ]; then
     deploy
-else
+elif [ "$cmd" = "a" ]; then
     publish
 
     echo "\n"
     cd ..
 
     deploy
+else
+    usage
 fi

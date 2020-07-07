@@ -56,6 +56,13 @@ git submodule add  -f  -b master https://github.com/liuyu121/liuyu121.github.io.
     repo = "liuyu121.github.io"
 ```
 
+## deploy && publish
+
+改写了下 官方的 `deploy.sh`，支持 `publish` 与 `deploy`，脚本很简单，本质就是封装一系列命令。
+
+```shell
+./de
+
 [^pa1]: [hugo 官网](https://gohugo.io/)
 
 [^pa2]: [hugo-theme-even](https://github.com/olOwOlo/hugo-theme-even)
