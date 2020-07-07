@@ -39,7 +39,7 @@ deploy() {
     git add .
     git commit -m "update"
     git push origin master
-    echo "============================== deploy end ==============================\n"
+    echo "\n============================== deploy end =============================="
 }
 
 
