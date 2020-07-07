@@ -7,9 +7,10 @@ weight: 50
 
 ---
 
-So Sally can wait ...
+Don't Look Back in Anger ...
 
 * `mysql`、`redis`、`kafka`、`es`
 * `php`、`go`、`python`
 * `linux`、`shell`
 * `data structures`、`algorit`
+

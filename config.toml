@@ -1,7 +1,7 @@
 liuduoyu = "https://liuyu121.github.io"
 languageCode = "en"
 defaultContentLanguage = "en"                             # en / zh-cn / ... (This field determines which i18n file to use)
-title = "Don't Look Back in Anger"
+title = "日拱一卒"
 preserveTaxonomyNames = true
 enableRobotsTXT = true
 enableEmoji = true
@@ -53,7 +53,7 @@ copyright = ""            # default: author.name ↓        # 默认为下面配
   version = "4.x"           # Used to give a friendly message when you have an incompatible update
   debug = false             # If true, load `eruda.min.js`. See https://github.com/liriliri/eruda
 
-  since = "2015"            # Site creation time          # 站点建立时间
+  since = "2014"            # Site creation time          # 站点建立时间
   # use public git repo url to link lastmod git commit, enableGitInfo should be true.
   # 指定 git 仓库地址，可以生成指向最近更新的 git commit 的链接，需要将 enableGitInfo 设置成 true.
   gitRepo = "https://github.com/liuyu121/liuyu121.github.io.git"
