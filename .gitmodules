@@ -2,3 +2,7 @@
 	path = public
 	url = https://github.com/liuyu121/liuyu121.github.io.git
 	branch = master
+[submodule "themes/even"]
+	path = themes/even
+	url = https://github.com/liuyu121/hugo-theme-even.git
+	branch = master
