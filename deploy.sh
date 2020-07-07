@@ -1,7 +1,7 @@
 #!/bin/sh
 
 publish() {
-    echo "=============== publish ===============\n"
+    echo "============================== publish start ==============================\n"
 
     # If a command fails then the deploy stops
     set -e
@@ -30,14 +30,16 @@ publish() {
         # Push source and build repos.
         git push origin master
     fi
+    echo "\n============================== publish end =============================="
 }
 
 deploy() {
-    echo "=============== deploy ===============\n"
+    echo "============================== deploy end ==============================\n"
     set +e
     git add .
     git commit -m "update"
     git push origin master
+    echo "============================== deploy end ==============================\n"
 }
 
 
