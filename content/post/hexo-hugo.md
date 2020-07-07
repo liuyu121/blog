@@ -4,8 +4,8 @@ date: 2020-07-06T18:45:20+08:00
 draft: false
 categories: ["Blog"]
 tags: ["blog"]
-contentCopyright: MIT
 ---
+
 
 ## 快速开始
 
@@ -73,3 +73,4 @@ Usage: deploy.sh
 [^pa2]: [hugo-theme-even](https://github.com/olOwOlo/hugo-theme-even)
 
 [^pa3]: [hosting-on-github](https://gohugo.io/hosting-and-deployment/hosting-on-github)
+
