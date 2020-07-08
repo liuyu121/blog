@@ -1,9 +1,9 @@
 ---
-title: "Hexo 迁移至 Hugo"
+title: "Hugo Write Blog"
 date: 2020-07-06T18:45:20+08:00
 draft: false
 categories: ["Blog"]
-tags: ["blog"]
+tags: ["blog","hugo"]
 ---
 
 
@@ -68,8 +68,18 @@ Usage: deploy.sh
         d : deploy
 ```
 
-[^pa1]: [hugo 官网](https://gohugo.io/)
+其他的一些脚手架：
 
+* 生成新的 `md` ，并自动打开（将 `.md`文件默认打开方式设置为`Typora`）：
+
+```shell
+$ ./post.sh rust-learn
+...content/post/rust-learn.md created
+```
+
+
+
+[^pa1]: [hugo 官网](https://gohugo.io/)
 [^pa2]: [hugo-theme-even](https://github.com/olOwOlo/hugo-theme-even)
 
 [^pa3]: [hosting-on-github](https://gohugo.io/hosting-and-deployment/hosting-on-github)

@@ -3,8 +3,8 @@ title: "{{ replace .Name "-" " " | title }}"
 date: {{ .Date }}
 lastmod: {{ .Date }}
 draft: false
-categories: ["Tech"]
-tags: ["tech"]
+categories: [""]
+tags: [""]
 
 ---
 
