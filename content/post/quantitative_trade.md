@@ -12,14 +12,19 @@ tags: ["invest","量化"]
 
 
 
-量化交易平台：
+几个不错的量化交易平台：
 
 * 聚宽：https://www.joinquant.com/
+
 * 米筐：https://www.ricequant.com/
+
 * 优矿：https://uqer.datayes.com/
-* FMZ：https://www.fmz.com/，这个很多币圈的在用，可以自由交由量化策略。
 
+  
 
+下面这个平台，很多币圈的人在用，可以自由交由量化策略：
+
+* FMZ：https://www.fmz.com/，
 
 
 
