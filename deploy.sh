@@ -45,7 +45,10 @@ deploy() {
     set +e
     git add .
     git commit -m "update"
-    git push origin master
+    if [ $? = 0 ]; then
+        # Push source and build repos.
+        git push origin master
+    fi
     echo "\n============================== deploy end =============================="
 }
 
