@@ -23,7 +23,7 @@ tags: ["tech"]
 
 啊，真心赞美这些伟大的开源软件大神们~
 
-## ### Homebrew
+### Homebrew
 
 [https://brew.sh/](https://brew.sh/)
 
@@ -59,7 +59,7 @@ tags: ["tech"]
 
 不管是 `UI` 、交互还是人性化，都是大写的牛逼。全屏模式下的沉浸式写作，简直让人欲罢不能。
 
-### Typora Tips
+#### Typora Tips
 
 持续更新一些 `tips`。
 
@@ -67,13 +67,19 @@ tags: ["tech"]
 * `emoji list`：[https://gist.github.com/rxaviers/7360908](https://gist.github.com/rxaviers/7360908)
 * 常用的快捷键：
   * 超链接：`command+k`，选中文本后，`Typora`能自动识别剪贴板的 `url`，生成超链接。
-  * 内联公式：`control+&#96;` 我喜欢把数字和英文加上该样式，所以特别实用。
+  * 内联公式：`control+`;` 我喜欢把数字和英文加上该样式，所以特别实用。
 
-## v2ray
+### v2ray
 
 https://github.com/v2ray/v2ray-core
 
-你懂的，`ss`被喝茶后，哀嚎一片，这尼玛都`0202年了`，😔
+你懂的，`ss`被喝茶后，哀嚎一片，这尼玛都`0202年了`，墙你妈呢~
+
+### VIM
+
+不会用 `emacs`又如何，`vim`足够了。
+
+关于 `vim`的配置也一大堆，按照个人喜好来就行。之前基于`vim`下开发了段时间，各种插件，但最后终究还是现代编辑器真香（`VsVode`、`intellij `家族），但还是得感谢那段时间的使用，对于这些上古玩意，就讲究一个熟能生巧 ：）
 
 ## 进阶篇
 
@@ -85,9 +91,13 @@ https://github.com/v2ray/v2ray-core
 
 但真的很方便。
 
-## tmux
+### tmux
 
 [https://github.com/tmux/tmux](https://github.com/tmux/tmux)
+
+注意，所谓前置快捷键 `ctrl+b`是指按下这俩键后松手，再按其他快捷键，否则会很迷惑。
+
+各种快捷键，熟能生巧。
 
 ### 小工具
 
