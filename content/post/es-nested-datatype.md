@@ -5,7 +5,6 @@ lastmod: 2020-07-09T15:36:15+08:00
 draft: false
 categories: ["Es"]
 tags: ["es"]
-
 ---
 
 有个服务写 `es`，遇到了以下报错：
@@ -58,7 +57,7 @@ PUT my_index/my_type/1
 }
 ```
 
-写入 `es` 后，我们来查询 `name = wangwu` 的评论，分别测试 `age = 10、20、33` 等 `case`，查询语法如下，修改 `age` 为对应的值即可（用 `kibana 语法表示更简明）：
+写入 `es` 后，我们来查询 `name = wangwu` 的评论，分别测试 `age = 10、20、33` 等 `case`，查询语法如下，修改 `age` 为对应的值即可（用 `kibana` 语法表示更简明）：
 
 ```json
 GET /my_index/_search?pretty
@@ -221,5 +220,5 @@ GET /my_index3/_settings/index.mapping.total_fields.limit
 
 [^pa1]: [Object datatype](https://www.elastic.co/guide/en/elasticsearch/reference/5.3/object.html#object)
 [^pa2]: [Nested datatype](https://www.elastic.co/guide/en/elasticsearch/reference/5.3/nested.html)
-[^ pa3]: [Nested query](https://www.elastic.co/guide/en/elasticsearch/reference/5.3/query-dsl-nested-query.html)
-[^ pa4]:[mapping-limit-settings](https://www.elastic.co/guide/en/elasticsearch/reference/master/mapping.html#mapping-limit-settings)
+[^pa3]: [Nested query](https://www.elastic.co/guide/en/elasticsearch/reference/5.3/query-dsl-nested-query.html)
+[^pa4]:[mapping-limit-settings](https://www.elastic.co/guide/en/elasticsearch/reference/master/mapping.html#mapping-limit-settings)
