@@ -1,5 +1,5 @@
 ---
-title: "Hugo Write Blog"
+title: "Hexo 迁移到 Hugo"
 date: 2020-07-06T18:45:20+08:00
 draft: false
 categories: ["Blog"]

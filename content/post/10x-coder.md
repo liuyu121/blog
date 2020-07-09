@@ -10,12 +10,12 @@ tags: ["tech"]
 
 牛逼的工具集，必须能事半功倍。
 
-下面参考链接是来自于网上一些大牛的分享，大牛是`100x programmer`，我觉得自己只要 `10x coder` 就已经很满足了（难。:yum:
+下面参考链接是来自于网上一些大牛的分享，大牛是`100x programmer`，我觉着 `10x coder` 就已经很牛逼了（难。:yum:
 
 * [How to be a 100x Programmer?](https://crispgm.com/page/how-to-be-a-100x-programmer.html)
 * [高能分享之《优雅的编程者》](http://xiaorui.cc/archives/6643)
 
-我用到电脑是 `mac`，所以本文相关工具都是基于 `mac` 系统，所以在其他系统上可能不可用、或使用姿势有差别，但更多的都是可跨平台使用且差异很小。
+常用电脑是 `mac`，所以本文相关工具都是基于 `mac` 系统，在其他系统上可能出现不可用、或使用姿势有差别，但更多的都是可跨平台使用软件。
 
 ## 装机必备篇
 
@@ -29,7 +29,7 @@ tags: ["tech"]
 
 不必多说，神器。
 
-因为是可以 `ruby` 写的，看着某个功能不爽可自行编辑，毕竟 修改 `ruby` 代码不需要懂语法：）
+因为是 `ruby` 写的，看着某个功能不爽可自行编辑，毕竟 修改 `ruby` 代码不需要懂语法：）
 
 ### iTerm2
 
@@ -87,7 +87,7 @@ https://github.com/v2ray/v2ray-core
 
 [https://github.com/jonas/tig](https://github.com/jonas/tig)
 
-你会告别 `git log --xxxx`，但坏处则是，会让你忘记 `git log --xxxx`。
+你会告别 `git log --xxxx`，但坏处是，会让你忘记 `git log --xxxx`。
 
 但真的很方便。
 
@@ -105,7 +105,7 @@ https://github.com/v2ray/v2ray-core
 
 ### Tips
 
-* `open`：学会在终端使用该命令，简单快捷。
+* `open`：学会在终端使用该命令，简单快捷，然后放在 `shell` 脚本里，美滋滋。
 
 
 
