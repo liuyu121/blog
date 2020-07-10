@@ -56,7 +56,9 @@ git submodule add  -f  -b master https://github.com/liuyu121/liuyu121.github.io.
     repo = "liuyu121.github.io"
 ```
 
-## deploy && publish
+## 脚手架
+
+### deploy && publish
 
 改写了下 官方的 `deploy.sh`，支持 `publish` 与 `deploy`，脚本很简单，本质就是封装一系列命令。
 
@@ -68,13 +70,16 @@ Usage: deploy.sh
         d : deploy
 ```
 
-其他的一些脚手架：
+### push &&
 
-* 生成新的 `md` ，并自动打开（将 `.md`文件默认打开方式设置为`Typora`）：
+* 生成新的 `md` ，并自动打开（将 `.md`文件默认打开方式设置为`Typora`）
+* 自动 `pull`
 
 ```shell
-$ ./post.sh rust-learn
-...content/post/rust-learn.md created
+$ ./util.sh
+Usage: util.sh
+        new md-file-name : create the md file at content/post/md-file-name.md
+        pull : pull repo && submodules
 ```
 
 
