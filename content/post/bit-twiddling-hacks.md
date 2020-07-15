@@ -37,5 +37,17 @@ static unsigned long rev(unsigned long v) {
 
 这篇文章列举了大量的位操作，堪称奇技淫巧大集合，而位操作的难点是不好理解，看到已经有国人翻译成了中文了，厉害~
 
+
+
+* 一些常用的十六进制
+
+```python
+>>> bin(0x55555555)
+'0b 01010101 01010101 01010101 01010101'
+
+>>> (0x55555555).bit_length()
+31
+```
+
 * [Bit Twiddling Hacks](http://graphics.stanford.edu/~seander/bithacks.html)
 * [【译】位运算的奇技淫巧：Bit Twiddling Hacks](https://blog.hufeifei.cn/2017/07/30/DataStructure/位运算的奇技淫巧/)
