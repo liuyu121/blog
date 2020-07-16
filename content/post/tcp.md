@@ -1,5 +1,5 @@
 ---
-title: "Tcp Close"
+title: "Tcp 连接的建立与关闭"
 date: 2020-07-16T14:03:29+08:00
 lastmod: 2020-07-16T14:03:29+08:00
 draft: false
@@ -20,7 +20,9 @@ tags: ["tcp"]
 
 `tcp` 报文首部格式如下：
 
-<img src="../../static/post/tcp-segment-header.png" alt="image-20200716140348543"  />
+![](./img/tcp-segment-header.png)
+
+
 
 其中，在日常分析 `tcp` 的建立与关闭时，主要关注的是在 `FLAGS `字段，该字段也即所谓的 `tcp 状态机`，主要有如下字段（大写表示，与序列号区分开）：
 
@@ -57,7 +59,11 @@ tags: ["tcp"]
 
 整体示意图如下：
 
-<img src="../../static/post/tcp-connect.jpeg" alt="image-20200716140348543"  />
+![](./img/tcp-connect.jpeg)
+
+
+
+
 
 ## 为什么是三次握手
 
@@ -139,7 +145,7 @@ tcp-backlog 511
 
 关闭一个 `tcp`  链接的流程图如下（之前留的图，出处已不可考了）：
 
-<img src="../../static/post/tcp-close.png" alt="image-20200716140348543"  />
+![](./img/tcp-close.png)
 
 
 
