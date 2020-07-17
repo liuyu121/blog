@@ -61,7 +61,9 @@ git submodule add  -f  -b master https://github.com/liuyu121/liuyu121.github.io.
 ## 图片处理
 
 * 图片都放在 `static/img` 目录下，在文章引用方式为：`![](/img/tcp-segment-header.png)`
-* 使用  `Typora` 时，需要用到绝对路径，所以要设置 `格式-图像-根目录` 为 `/static`
+* 在 `archetypes/default.md` 文件添加 `typora-root-url: ../../static`
+
+这样，我们就可以正常的在 `MD` 文件插入图片，而服务器与本地都能正常展示了。
 
 ## 脚手架
 

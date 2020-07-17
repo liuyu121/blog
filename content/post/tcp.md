@@ -3,7 +3,7 @@ title: "TCP 连接的建立与关闭"
 date: 2020-07-16T14:03:29+08:00
 lastmod: 2020-07-16T14:03:29+08:00
 draft: false
-categories: ["Tcp"]
+categories: ["TCP"]
 tags: ["tcp"]
 typora-root-url: ../../static
 ---
@@ -12,9 +12,9 @@ typora-root-url: ../../static
 
 `tcp` 协议的生命周期，本质是一个*有限状态机* 的流转，从建立到数据传输再到关闭，伴随着不同状态的迁移。而在不同的状态中，又会有着一些优化与问题。
 
-`tcp 协议`  本身及其复杂，除了建立与关闭涉及到多次交互外，还需要考虑  `滑动窗口`、`重传策略`、`状态复用`、`拥塞控制`、`RTT（Round Trip Time）` 等等，远古大神们真实费煞苦心。
+`tcp 协议`  本身极其复杂，除了建立与关闭涉及到多次交互外，还需要考虑  `滑动窗口`、`重传策略`、`状态复用`、`拥塞控制`、`RTT（Round Trip Time）` 等等，远古大神们真是费煞苦心。
 
-注：本文的图例来自网络，出处已经不可考，感谢原作者们清晰的图示 :)
+注：本文的图例来自网络，历史原因未标明出处，感谢原作者们清晰的图示 :)
 
 # 首部结构
 
@@ -42,7 +42,7 @@ typora-root-url: ../../static
 
 #  建立
 
-我们使用 `client` 表示主动发起建立方，`server` 表示被动响应建立方，server` 需要 `bind` 某个端口并 `listen`，做好随时迎接一个连接的准备。
+我们使用 `client` 表示主动发起建立方，`server` 表示被动响应建立方，`server` 需要 `bind` 某个端口并 `listen`，做好随时迎接一个连接的准备。
 
 一个连接的建立，大体流程如下：
 
@@ -85,8 +85,11 @@ typora-root-url: ../../static
 另外，还有其他场景，如：
 
 * `client` 先后发送了两次 `SYN`，第一个 `SYN` 延时了，第二个 `SYN` 先行到达 `server`；
+
 * 此后双方建立了连接，传输数据，关闭连接；
+
 * 这时，延时的第一个 `SYN` 又到了 `server`，然后 `server` 回复 `ACK`，又进入了 `ESTABLISHED`。但其实这是个无效的报文，建立了一个多余的连接。
+
 * 而如果使用 `三次握手` 机制，此时  `client` 可以直接丢弃该无效报文，而 `server` 收不到 `client` 的 `ACK`，也不会建立连接。
 
 为什么不是 `4` 次握手 呢，但这里我们已经知道最少需要 `3` 次就已经可以建立了，所以，为什么还要多一次呢，浪费资源 。。。
@@ -96,15 +99,27 @@ typora-root-url: ../../static
 在上面的示意图中，我们可以看到，`server` 端有两个 `qeue`：`syn queue`、`accept queue`，其含义为:
 
 * `syn queue`：半连接队列（`Half-open Connection`)。当 `server` 第一次收到请求报文后，内核会将该连接放入 `syn queue`，然后发送 `SYN+ACK` 给 `client`。顾名思义，这个队列保存的都是正在建立中的连接列表。
+
   * 队列未满：加入到 `sync queue`。
+  
   * 队列已满：如果  `net.ipv4.tcp_syncookies = 0`，直接丢弃这个包，如果设置了该参数，则：
+  
     * 如果 `accept queue` 也已经满了，并且 `qlen_young` 的值大于 1，丢弃这个 `SYN`；其中，`qlen_young` 表示目前 `syn queue` 中，没有进行 `SYN+ACK` 包重传的连接数量。
+    
     * 否则，生成 `syncookie` 并返回 `SYN+ACK`。
+    
   * 可构造 `TCP SYN FLOOD` 攻击，发送大量的 `SYN` 报文，然后丢弃，导致 `server` 的该队列一直处于满负荷状态，无法处理其他正常的请求。 
-* `accept queue`：全连接队列。当 `server` 再次收到  `client` 的 `ACK` 后，这时，如果
+  
+* `accept queue`：全连接队列。当 `server` 再次收到  `client` 的 `ACK` 后，这时，如果：
+
   * 队列未满：将该连接放入到全连接队列中，系统调用 `accept` 本质就是从该队列不断获取已经连接好的请求。
+  
   * 队列已满：取决于 `tcp_abort_on_overflow` 的配置
-    * `tcp_abort_on_overflow = 0`：`server` 丢弃该 `ACK`，再由一个定时器  `net.ipv4.tcp_synack_retries` 重传 `SYN+ACK` ，总次数不超过 `/proc/sys/net/ipv4/tcp_synack_retries`  配置的次数。这是因为此时 `server` 还处于 `SYN-RECEIVED` 状态，所以再次发送报文告诉 `client` 可以重新尝试建立连接（可能  `server` 下一次收到该包时队列变成未满状态了 ）。此时，若 `client` 的超时时间较短，则表现为 `READ_TIMEOUT`，因为 `client` 已经处于 `ESTABLISHED` 了。
+  
+    * `tcp_abort_on_overflow = 0`：`server` 丢弃该 `ACK`，再由一个定时器  `net.ipv4.tcp_synack_retries` 重传 `SYN+ACK` ，总次数不超过 `/proc/sys/net/ipv4/tcp_synack_retries`  配置的次数。
+    
+    * 这是因为此时 `server` 还处于 `SYN-RECEIVED` 状态，所以再次发送报文告诉 `client` 可以重新尝试建立连接（可能  `server` 下一次收到该包时队列变成未满状态了 ）。此时，若 `client` 的超时时间较短，则表现为 `READ_TIMEOUT`，因为 `client` 已经处于 `ESTABLISHED` 了。
+    
     * `tcp_abort_on_overflow = 1`：`server` 回复 `RST`，并从半连接队列中删除，`client` 表现为 `Connection reset by peer`
 
 这里的逻辑比较复杂，涉及到内核很多参数的设置，具体可以参考相关书籍。
@@ -117,7 +132,9 @@ typora-root-url: ../../static
        int listen(int sockfd, int backlog);
 ```
 
-这个 `backlog` 参数，定义是 *已连接但未进行 `accept` 处理的 `SOCKET` 队列大小*，也即上面提到的 `accept queue`。如果这个队列满了，将会发送一个ECONNREFUSED错误信息给到客户端,即 linux 头文件 /usr/include/asm-generic/errno.h中定义的“Connection refused”，（如果协议不支持重传，该请求会被忽略）如下：
+这个 `backlog` 参数，定义是 *已连接但未进行 `accept` 处理的 `SOCKET` 队列大小*，也即上面提到的 `accept queue`。如果这个队列满了，将会发送一个 `errno = ECONNREFUSED` 的错误，即 `linux` 头文件 `/usr/include/asm-generic/errno.h` 中定义的 `Connection refused`。
+
+接下来分别看下常用软件的设置：
 
 * `nginx`：默认为 `511`
 
@@ -193,24 +210,20 @@ tcp-backlog 511
 
 所以，因为是 `全双工`，所以一来一回`*2`，最少需要`4次` 握手机制，才能保证一个连接正确关闭。
 
-
-
 ## TIME_WAIT 与 CLOSE_WAIT
 
 `TIME_WAIT` 与 `CLOSE_WAIT` 应该是 `web` 服务中，最常见的几个 `TCP` 状态，通常，也是我们需要重点关注的网络指标。
-
-
 
 # 代码示例
 
 
 # 参考
 
-* 又找来一张图，较为完善的描述了 `TCP` 的整个生命周期：
+最后，用一张图结束本文：
 
 ![](/img/tcp.png)
 
-* 下面有一些有用到文章，都是干货。
+下面有一些有用到文章，都是干货。
 
 * [wikipedia - TCP](https://en.wikipedia.org/wiki/Transmission_Control_Protocol)
 * [How TCP backlog works in Linux](http://veithen.io/2014/01/01/how-tcp-backlog-works-in-linux.html)

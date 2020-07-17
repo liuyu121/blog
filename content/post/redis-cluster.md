@@ -39,7 +39,7 @@ tags: ["redis","database"]
 * `node`：每个 `node` 本质是全双工的通信(基于 `TCP`)。采用了分布式架构里常见的 `选举算法`，也即 `需要大于 1/2 个节点同意`，所以最少也会存在 `3个` 主节点，而通常主节点都会挂载 `1~n` 个 `slave`，所以一般情况下，`redis-cluster` 至少有 `6` 个 `nodes`。官方文档也是以 `6` 个作为示例。
 
 * `shard`：每个 `shard` 也即 `master-slave`架构，采用 `异步 replication` 方式进行数据同步。但不同于传统的主从架构，`master` 和 `slave` 本质也是个 `节点`，可通过协议实现角色互换等。
- 
+
 * `slot 机制`： 使用 `pow(2, 14) = 1684` 个 `slot`，分配至各个 `master`，针对每个 `key` 进行 `一致性 hash`，将其存储至某个 `master`。其中 `一致性 hash 算法`为：
 
 ```
@@ -58,7 +58,7 @@ HASH_SLOT = CRC16(key) mod 16384 (slot 编号 区间[0, 13683])
 * `hash tags`: 因为 `key` 是分布在不同 `slot`，所以在执行如 `multi` 等操作的时候，`redis-cluster` 是不支持 `CROSSSLOT Keys` 操作的。所以它提供一种 `hash tags` 的方案用于将某些 `key` 放到同一 `slot` 的方案。
 
 > 注意：这里使用了 `{}` 用于标记真正被 `hash` 的 `key`，第一个 `{` 与紧接着其的 `}`将被认为是 `key`。
- 
+
 ```
 127.0.0.1:8002> set {users}.xxooyu 2
 OK
@@ -77,7 +77,7 @@ OK
 
 * `write safety`：分区可用性分析（也即网络分区了，互相不可达），需要根据当前 `client` 处于何种 `分区环境`进行分析。
 	 - `the minority side`：位于小分区一端，一直在 `master` 写数据，在此期间，因为 `Failover` 机制，其他分区的某个 `slave` 提升为了 `master`。那么当分区可用后，原 `master` 的数据丢失（因为该 `master` 的 `role` 成了 `slave`）。
-	 
+	
 	 - `the majority side`：位于大分区一端，因为主从是异步同步的，写操作在 `master` 成功后但 `slave` 未同步完成，`master` 挂了（`master` 不可达的时间超过阈值 `node timeout` 的配置），集群通过选举，某 `slave` 为新的 `master`，那么之前写的数据丢失。
 
 	- 这里需要注意的是，因为 `master` 之间存在心跳检测，所以当某 `master` 发现其与其他 `master` 的通信断了超过 `NODE_TIMEOUT` 后，则会拒绝 `write`，为 `readonly`。这时 `slave` 已经知道自己的 `master` 挂了，开始 `failover`，其他 `master` 在开始参与选举操作。所以如果网络分区时间大于 `node timeout`，则数据会丢失。
