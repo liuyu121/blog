@@ -24,9 +24,9 @@ typora-root-url: ../../static
 
 其中，在日常分析 `tcp` 的建立与关闭时，主要关注的是在 `FLAGS `字段，该字段也即所谓的 `tcp 状态机`，主要有如下字段（大写表示，与序列号区分开）：
 
-* `SYN`：表示建立连接。
+* `SYN`：`Synchronize Sequence Numbers`，同步序列号，表示建立连接。
 * `FIN`：表示关闭连接。
-* `ACK`：表示响应。
+* `ACK`：`Acknowledge Sequence Numbers`，确认序列号，表示响应。
 * `PSH`： `push`，表示当前正在传输数据
 * `RST`： `reset`，表示连接重置。
 
@@ -47,16 +47,13 @@ typora-root-url: ../../static
 一个连接的建立，大体流程如下：
 
 * 1、`client` 发送请求建立连接的报文，其中 `SYN = 1` ，`seq`  为一个随机值  `ISN1` ，注意这里必须是随机值而不能设为 `1`，防止被猜测序列号后恶意攻击（也即所谓的「`TCP序列猜测攻击`」）。
-  
-  * 此时，`client` 进入 `SYN-SENT` 状态。 
-  
+  * 此时，`client` 进入 `SYN_SENT` 状态。 
 * 2、`server` 收到请求报文后，发送一个 `SYNC = 1, ACK = 1`，也即 `SYN+ACK`，且同样的，随机一个  `ISN2` 作为 `seq`，并设 `ack = ISN1+1`，也即对请求报文的确认。其中 `ack` 表示希望 `client` 接下来传该字节开始的数据流。
-  
-  * 此时，`server` 进入 `SYN-RECEIVED` 状态。
-  
+  * 此时，`server` 进入 `SYN_RECEIVED` 状态。
 * 3、`client` 收到响应报文后，需要再次确认，发送一个 `ACK = 1`，并设 `ack = ISN2+1，seq = ISN1+1`，也即表示自己收到了 `server` 的确认报文。这里，`seq = ISN1+1`  是因为，从语义上来说，`server` 希望收到该序号的报文。
+  * 此时，`client` 进入 `ESTABLISHED` 状态，`server` 在收到 `ACK` 后也进入  `ESTABLISHED` 状态。
 
-自此，我们可以认为双方进入 `ESTABLISHED` 状态，全双工连接建立完成。但其实，这里准确的说，应该是 `client` 进入了  `ESTABLISHED` 状态，`server` 是否成功还取决于当前 `accept queue` 的情况，下面会分析。
+自此，我们可以认为双方进入 `ESTABLISHED` 状态，全双工连接建立完成。但其实，这里准确的说，应该是 `client` 进入了  `ESTABLISHED` 状态，`server` 是否成功还取决于当前 `accept queue` 的情况，下面会具体分析。
 
 需要注意的是，上面的流程中，并没有真正的发送数据，双方只是进行一系列序列号交换的握手操作。
 
@@ -96,20 +93,17 @@ typora-root-url: ../../static
 
 ## backlog 是什么
 
-在上面的示意图中，我们可以看到，`server` 端有两个 `qeue`：`syn queue`、`accept queue`，其含义为:
+在上面的示意图中，我们可以看到，`server` 端有两个 `queue`：`syn queue`、`accept queue`，其含义为:
 
-* `syn queue`：半连接队列（`Half-open Connection`)。当 `server` 第一次收到请求报文后，内核会将该连接放入 `syn queue`，然后发送 `SYN+ACK` 给 `client`。顾名思义，这个队列保存的都是正在建立中的连接列表。
-
+* `syn queue`：半连接队列（`Half-open Connection`)。当 `server` 收到 `SYN` 报文后（`>=1` 个），内核需要维护这些连接，所以需要一个队列保存下来，也即这里的 `syn queue`，同时发送 `SYN+ACK` 给 `client`。
   * 队列未满：加入到 `sync queue`。
-  
   * 队列已满：如果  `net.ipv4.tcp_syncookies = 0`，直接丢弃这个包，如果设置了该参数，则：
-  
+
     * 如果 `accept queue` 也已经满了，并且 `qlen_young` 的值大于 1，丢弃这个 `SYN`；其中，`qlen_young` 表示目前 `syn queue` 中，没有进行 `SYN+ACK` 包重传的连接数量。
-    
+
     * 否则，生成 `syncookie` 并返回 `SYN+ACK`。
-    
+
   * 可构造 `TCP SYN FLOOD` 攻击，发送大量的 `SYN` 报文，然后丢弃，导致 `server` 的该队列一直处于满负荷状态，无法处理其他正常的请求。 
-  
 * `accept queue`：全连接队列。当 `server` 再次收到  `client` 的 `ACK` 后，这时，如果：
 
   * 队列未满：将该连接放入到全连接队列中，系统调用 `accept` 本质就是从该队列不断获取已经连接好的请求。
@@ -118,11 +112,13 @@ typora-root-url: ../../static
   
     * `tcp_abort_on_overflow = 0`：`server` 丢弃该 `ACK`，再由一个定时器  `net.ipv4.tcp_synack_retries` 重传 `SYN+ACK` ，总次数不超过 `/proc/sys/net/ipv4/tcp_synack_retries`  配置的次数。
     
-    * 这是因为此时 `server` 还处于 `SYN-RECEIVED` 状态，所以再次发送报文告诉 `client` 可以重新尝试建立连接（可能  `server` 下一次收到该包时队列变成未满状态了 ）。此时，若 `client` 的超时时间较短，则表现为 `READ_TIMEOUT`，因为 `client` 已经处于 `ESTABLISHED` 了。
+    * 这是因为此时 `server` 还处于 `SYN_RECEIVED` 状态，所以再次发送报文告诉 `client` 可以重新尝试建立连接（可能  `server` 下一次收到该包时队列变成未满状态了 ）。此时，若 `client` 的超时时间较短，则表现为 `READ_TIMEOUT`，因为 `client` 已经处于 `ESTABLISHED` 了。
     
     * `tcp_abort_on_overflow = 1`：`server` 回复 `RST`，并从半连接队列中删除，`client` 表现为 `Connection reset by peer`
 
-这里的逻辑比较复杂，涉及到内核很多参数的设置，具体可以参考相关书籍。
+这里的逻辑比较复杂，涉及到内核很多参数的设置，具体可以参考相关书籍，下面是更清晰的图示：
+
+![](/img/tcp-queue.png)
 
 我们回到标题的 `backlog` 上，之所以重点关注这个参数，是因为在日常的 `web 开发` 中，涉及到的 `nginx + redis + php-fpm` 等，配置项大多都有这个参数，而这些软件都是典型的  `server-client` 结构。
 
