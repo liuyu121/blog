@@ -4,8 +4,8 @@ date: 2020-07-06T18:45:20+08:00
 draft: false
 categories: ["Blog"]
 tags: ["blog","hugo"]
+typora-root-url: ../../static
 ---
-
 
 ## 快速开始
 
@@ -55,6 +55,13 @@ git submodule add  -f  -b master https://github.com/liuyu121/liuyu121.github.io.
     owner = "liuyu121"              # Your GitHub ID
     repo = "liuyu121.github.io"
 ```
+
+
+
+## 图片处理
+
+* 图片都放在 `static/img` 目录下，在文章引用方式为：`![](/img/tcp-segment-header.png)`
+* 使用  `Typora` 时，需要用到绝对路径，所以要设置 `格式-图像-根目录` 为 `/static`
 
 ## 脚手架
 
