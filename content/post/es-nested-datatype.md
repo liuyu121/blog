@@ -3,7 +3,7 @@ title: "ES Nested 类型"
 date: 2020-07-09T15:36:15+08:00
 lastmod: 2020-07-09T15:36:15+08:00
 draft: false
-categories: ["Es"]
+categories: ["ES"]
 tags: ["es"]
 ---
 
