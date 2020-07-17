@@ -42,7 +42,7 @@ typora-root-url: ../../static
 
 #  建立
 
-我们使用 `client` 表示主动发起建立方，`server` 表示被动响应建立方，server`  需要 `bind` 某个端口并 `listen`，做好随时迎接一个连接的准备。
+我们使用 `client` 表示主动发起建立方，`server` 表示被动响应建立方，server` 需要 `bind` 某个端口并 `listen`，做好随时迎接一个连接的准备。
 
 一个连接的建立，大体流程如下：
 
@@ -50,17 +50,11 @@ typora-root-url: ../../static
   
   * 此时，`client` 进入 `SYN-SENT` 状态。 
   
-  
-  
-* 2、`server` 收到请求报文后，发送一个 `SYNC =1, ACK = 1`，也即 `SYN+ACK`，且同样的，随机一个  `ISN2` 作为 `seq`，并设 `ack = ISN1+1`，也即对请求报文的确认。其中 `ack` 表示希望 `client` 接下来传该字节开始的数据流。
+* 2、`server` 收到请求报文后，发送一个 `SYNC = 1, ACK = 1`，也即 `SYN+ACK`，且同样的，随机一个  `ISN2` 作为 `seq`，并设 `ack = ISN1+1`，也即对请求报文的确认。其中 `ack` 表示希望 `client` 接下来传该字节开始的数据流。
   
   * 此时，`server` 进入 `SYN-RECEIVED` 状态。
   
-  
-  
 * 3、`client` 收到响应报文后，需要再次确认，发送一个 `ACK = 1`，并设 `ack = ISN2+1，seq = ISN1+1`，也即表示自己收到了 `server` 的确认报文。这里，`seq = ISN1+1`  是因为，从语义上来说，`server` 希望收到该序号的报文。
-  
-  
 
 自此，我们可以认为双方进入 `ESTABLISHED` 状态，全双工连接建立完成。但其实，这里准确的说，应该是 `client` 进入了  `ESTABLISHED` 状态，`server` 是否成功还取决于当前 `accept queue` 的情况，下面会分析。
 
@@ -75,16 +69,27 @@ typora-root-url: ../../static
 
 从建立的流程可以看出，`第一次` 发送，表示 `client` 请求建立连接；第二次表示 `server` 收到了请求并做了回复。这里如果没有第三次就  `ESTABLISHED`  了，开始传输数据，那么会有什么问题呢？
 
-这里，我们需要重点关注 `seq` ，`tcp` 就是依据这个字段进行所谓 `可靠传输` 的，也即，`tcp` 双方都依赖这个序列号来进行数据包的有序传输。
+这里，我们需要重点关注 `seq` ，`tcp` 就是依据这个字段进行所谓 `可靠传输` 的，也即，`tcp` 双方都依赖这个序列号来进行数据包的有序传输。从语义上来说，参与 `TCP` 连接的双方，都需要满足：
 
-所以，在前两次握手完成后，此时：
+*  知道对方下一个要发的包序列（对方 `seq`）
+*  知道对方收到了自己之前发出的包（我方 `seq`）
+
+所以，在前两次握手完成后，双方都进入 `ESTABLISHED`，此时：
 
 * `client` 得到了正确的返回 `ISN1+1`，且得到了 `server` 的 `seq`，也即 `cient` 知道 `server` 已经收到自己的数据包了，且知道 `server` 下一个要发的序列；
 
-* `server` 不确定自己的 `ACK`  是否成功被 `client` 接收，假设这时这个包丢了，  `server`  直接把自己置为  `ESTABLISHED` ，但这个时候 `client` 仍然处于 `SYN-SENT` 状态，全双工的连接并没建立起来！
-* 也即，此时，`client`  不知道 `server` 的 `seq`， `server`  就无法保证  `client`   是按照正确的顺序来接收数据包。如果 `server` 继续发送数据，`client` 无法做到有序接收。
+* `server` 不确定自己的 `ACK`  是否成功被 `client` 接收，假设这时这个包丢了，此时，`client`  不知道 `server` 的 `seq`， `server`  就无法保证  `client`   是按照正确的顺序来接收自己的数据包。也即，如果 `server` 继续发送数据，`client` 无法做到有序接收。
 
-为什么不是 `4` 次连接呢，但这里我们已经知道 `3` 次就已经可以建立了，所以，为什么还要多一次呢，浪费资源 。。。
+以上，不满足 `TCP` 的语义要求。
+
+另外，还有其他场景，如：
+
+* `client` 先后发送了两次 `SYN`，第一个 `SYN` 延时了，第二个 `SYN` 先行到达 `server`；
+* 此后双方建立了连接，传输数据，关闭连接；
+* 这时，延时的第一个 `SYN` 又到了 `server`，然后 `server` 回复 `ACK`，又进入了 `ESTABLISHED`。但其实这是个无效的报文，建立了一个多余的连接。
+* 而如果使用 `三次握手` 机制，此时  `client` 可以直接丢弃该无效报文，而 `server` 收不到 `client` 的 `ACK`，也不会建立连接。
+
+为什么不是 `4` 次握手 呢，但这里我们已经知道最少需要 `3` 次就已经可以建立了，所以，为什么还要多一次呢，浪费资源 。。。
 
 ## backlog 是什么
 
@@ -144,35 +149,62 @@ tcp-backlog 511
 
 所以，我们 *惊奇* 的发现，三者的默认值都为 `511`，但其实之前 `php-fpm` 设置的是 `65535`，后来在某个版本中 `fix` 了，`issue` 参见 [Set FPM_BACKLOG_DEFAULT to 511](https://github.com/php/php-src/commit/ebf4ffc9354f316f19c839a114b26a564033708a)。
 
-那么，为什么要 `fix`
+那么，为什么要 `fix` 这个数值呢，我们可做如下推理：
 
+* 如果 `php-fpm` 的 `backlog` 过大，通过 `nginx` 的请求可以一直建立，但如果 `php` 的处理速度变慢了，后面的连接执行时间过长，可能超出了 `nginx` 的 `fastcgi_read_timeout` 设置，`fpm` 往这个 `socket`  `write` 时，`nginx` 已经断开了连接了， 会出现  `broken pipe` 错误，也即 `Connection timed out`，`nginx` 表现为 `504 Gateway Timeout`
 
+* 如果 `php-fpm` 的 `backlog` 过小， `nginx` 的请求超过 `fastcgi_connect_timeout` 时间还未建立，，也即 `Connection refused`， `nginx` 表现为 `502 Bad Gateway` 错误。
+
+所以， `php-fpm` 的就设置为 `nginx` 一样，`511`，因为内核源码的判断条件是 `>`，因而这些常见的应用最多能 `accept 512` 个请求。
 
 # 关闭
 
-关闭一个 `tcp`  链接的流程图如下（之前留的图，出处已不可考了）：
+我们使用 `client` 表示主动发起关闭方，`server` 表示被动响应关闭方。
+
+关闭一个 `TCP` 连接，大致流程如下：
+
+* 1、`client` 发送请求关闭连接的报文，其中 `FIN = 1, seq = x`。
+  
+  * 此时，`client` 进入 `FIN_WAIT_1` 状态。 
+  
+* 2、`server` 收到 `FIN` 报文后，发送一个 `ACK = 1, ack = x+1`，表示已经收到了关闭的请求。注意，这里不是立即关闭，因为此时可能还要别的数据要接收、处理等。
+  
+  * 此时，`server` 进入 `CLOSE_WAIT` 状态；`client` 收到 `ACK` 后 进入 `FIN_WAIT_2` 状态。
+  
+* 3、`server` 处理完了当前工作，可以关闭了，发送一个 `FIN = 1, seq = y` 的报文，然后等待 `client` 的响应，就可以关闭当前连接了。
+
+  * 此时，`server` 进入 `LAST_ACK` 状态。
+  
+* 4、`client` 收到 `FIN` 报文，发送一个 `ACK = 1, seq = y+1`，此时 
+
+	* 此时，`client`  进入 `TIME_WAIT` 状态，等待一段时间后，关闭连接；`server` 收到 `ACK`  关闭连接；
+
+关闭一个 `tcp`  链接的流程图如下：
 
 ![](/img/tcp-close.png)
 
 
-
-可通俗解释为：
-
-
-
 ## 为什么需要四次
+
+相同的问题来了，为什么需要 `4` 次挥手呢，而不是 `3` 、`5` 次？
+
+其实本质原因与需要 `3次握手` 类似，因为 `TCP` 是一个 `全双工`（`full-duplex`）的协议。
+
+* `1` 次肯定不行，`client` 根本不确定对方是否收到了自己的 `FIN`，直接关闭太简单粗暴
+* `2` 次的话，`server` 不能保证能立即关闭，因为其需要一个处理当前逻辑的时间
+* `3`次时，同理，`server` 也不能保证 `client` 收到了自己的 `FIN`
+
+所以，因为是 `全双工`，所以一来一回`*2`，最少需要`4次` 握手机制，才能保证一个连接正确关闭。
+
+
+
+## TIME_WAIT 与 CLOSE_WAIT
+
+`TIME_WAIT` 与 `CLOSE_WAIT` 应该是 `web` 服务中，最常见的几个 `TCP` 状态，通常，也是我们需要重点关注的网络指标。
 
 
 
 ## 代码示例
-
-
-
-## time_wait 问题
-
-
-
-## 优化
 
 
 
