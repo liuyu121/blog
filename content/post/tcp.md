@@ -36,21 +36,30 @@ typora-root-url: ../../static
   * 如果 `SYN` 设置为 `1`，其表示 `ISN（initial sequence number）`，也即，初始序列号，并期望对方能返回该 `ISN+1`  的 `ack`。
   * 如果 `SYN` 设置为 `0`，表示当前传输报文段中首字节的编号（在当前全部字节流中，通过 `mss` 分段后的编号。
 
-* ack`： `Acknowledgment number (if ACK set)
+* `ack`： `Acknowledgment number (if ACK set)`
   * 当且仅当 `ACK` 设置为  `1` 时，才有效。
   *  表示期望收到的下一个 `seq`，如果是 `SYN` 的 `ACK`，其值为发起方的 `ISN+1`。
 
 #  建立
 
-一个连接的建立，大致流程如下，我们使用 `client` 表示主动发起建立方，`server` 表示被动响应建立方。
+我们使用 `client` 表示主动发起建立方，`server` 表示被动响应建立方，server`  需要 `bind` 某个端口并 `listen`，做好随时迎接一个连接的准备。
 
-`server`  需要 `bind` 某个端口并 `listen`，做好随时迎接一个连接的准备，大体流程如下：
+一个连接的建立，大体流程如下：
 
 * 1、`client` 发送请求建立连接的报文，其中 `SYN = 1` ，`seq`  为一个随机值  `ISN1` ，注意这里必须是随机值而不能设为 `1`，防止被猜测序列号后恶意攻击（也即所谓的「`TCP序列猜测攻击`」）。
+  
   * 此时，`client` 进入 `SYN-SENT` 状态。 
+  
+  
+  
 * 2、`server` 收到请求报文后，发送一个 `SYNC =1, ACK = 1`，也即 `SYN+ACK`，且同样的，随机一个  `ISN2` 作为 `seq`，并设 `ack = ISN1+1`，也即对请求报文的确认。其中 `ack` 表示希望 `client` 接下来传该字节开始的数据流。
+  
   * 此时，`server` 进入 `SYN-RECEIVED` 状态。
+  
+  
+  
 * 3、`client` 收到响应报文后，需要再次确认，发送一个 `ACK = 1`，并设 `ack = ISN2+1，seq = ISN1+1`，也即表示自己收到了 `server` 的确认报文。这里，`seq = ISN1+1`  是因为，从语义上来说，`server` 希望收到该序号的报文。
+  
   
 
 自此，我们可以认为双方进入 `ESTABLISHED` 状态，全双工连接建立完成。但其实，这里准确的说，应该是 `client` 进入了  `ESTABLISHED` 状态，`server` 是否成功还取决于当前 `accept queue` 的情况，下面会分析。
