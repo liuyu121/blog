@@ -5,7 +5,7 @@ lastmod: 2020-07-16T14:03:29+08:00
 draft: false
 categories: ["Tcp"]
 tags: ["tcp"]
-
+typora-root-url: ../../static
 ---
 
 `tcp（Transmission Control Protocol）` 是一种位于传输层、面向字节流、保证可靠传输的全双工协议，作为底层协议，支撑着着应用层如 `http`、`SMTP` 等。鼎鼎大名的 `三次握手`、`四次挥手`指的就是其建立与关闭的流程。
@@ -20,7 +20,7 @@ tags: ["tcp"]
 
 `tcp` 报文首部格式如下：
 
-![](./img/tcp-segment-header.png)
+![](/img/tcp-segment-header.png)
 
 
 
@@ -59,7 +59,7 @@ tags: ["tcp"]
 
 整体示意图如下：
 
-![](./img/tcp-connect.jpeg)
+![](/img/tcp-connect.jpeg)
 
 
 
@@ -145,7 +145,7 @@ tcp-backlog 511
 
 关闭一个 `tcp`  链接的流程图如下（之前留的图，出处已不可考了）：
 
-![](./img/tcp-close.png)
+![](/img/tcp-close.png)
 
 
 
