@@ -5,6 +5,7 @@ lastmod: {{ .Date }}
 draft: false
 categories: [""]
 tags: [""]
-
+typora-root-url: ../../static
 ---
+
 
