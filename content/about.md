@@ -11,6 +11,7 @@ Don't Look Back in Anger ...
 
 * `mysql`、`redis`、`kafka`、`es`
 * `php`、`go`、`python`、`lua`、`rust`、`shell`
-* `linux`、`mac`
+* `linux`、`mac`、`vim`
 * `data structures`、`algorithm`
+
 
