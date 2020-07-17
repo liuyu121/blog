@@ -181,9 +181,6 @@ tcp-backlog 511
 
 关闭一个 `tcp`  链接的流程图如下：
 
-![](/img/tcp-close.png)
-
-
 ## 为什么需要四次
 
 相同的问题来了，为什么需要 `4` 次挥手呢，而不是 `3` 、`5` 次？
@@ -204,13 +201,16 @@ tcp-backlog 511
 
 
 
-## 代码示例
+# 代码示例
 
 
+# 参考
 
-## 参考
+* 又找来一张图，较为完善的描述了 `TCP` 的整个生命周期：
 
-下面有一些有用到文章，都是干货。
+![](/img/tcp.png)
+
+* 下面有一些有用到文章，都是干货。
 
 * [wikipedia - TCP](https://en.wikipedia.org/wiki/Transmission_Control_Protocol)
 * [How TCP backlog works in Linux](http://veithen.io/2014/01/01/how-tcp-backlog-works-in-linux.html)

@@ -236,3 +236,18 @@ git submodule foreach git pull
 * 编辑 `.git/config` 文件，删除该子模块的相关配置
 
 * 手动删除子模块残留的目录，如 `.git/modules/` 下对应目录等
+
+
+
+## 问题解决
+
+* 不小心删除了 `public`  下的所有代码，然后总也 `pull` 不下来：
+
+```git
+git ls-files --stage public
+git rm --cached public
+git ls-files --stage public
+rm -rf public
+git submodule add --force https://github.com/liuyu121/liuyu121.github.io.git public
+```
+
