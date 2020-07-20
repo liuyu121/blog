@@ -79,7 +79,7 @@ Usage: deploy.sh
         d : deploy
 ```
 
-### push &&
+### push && new post
 
 * 生成新的 `md` ，并自动打开（将 `.md`文件默认打开方式设置为`Typora`）
 * 自动 `pull`
