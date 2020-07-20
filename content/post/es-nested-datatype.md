@@ -215,7 +215,7 @@ GET /my_index3/_settings/index.mapping.total_fields.limit
 
 需要注意的是，`dynamic mapping`  时，会以先写入的 `filed` 的数据格式作为当天的数据格式，后续写入不能修改，在弱类型语言中，比如 `php` 也即一旦创建完成，就不允许修改，否则会写入失败：
 
-* 后续继续写入已有的数据，数据格式必须一致，因为此时 `field datatype 已经建立好了；
+* 后续继续写入已有的数据，数据格式必须一致，因为此时 `field datatype` 已经建立好了；
 * 后续继续写入新增的 `field`，是可以成功写入的。
 
 [^pa1]: [Object datatype](https://www.elastic.co/guide/en/elasticsearch/reference/5.3/object.html#object)
