@@ -66,6 +66,30 @@ grep -r -I -l $'^\xEF\xBB\xBF' ./*
 vim set nobomb
 ```
 
+## 字符串
+
+### substr
+
+* `awk`：使用 `substr`(源字符串,开始索引,长度)  ，索引以 `0` 开始：
+
+```shell
+$ echo abcdefg | awk '{$a=substr($0,0,2);print $a;}'
+ab
+```
+
+* `expr`：`expr substr` ，字符串 开始索引 长度 ，索引以 `1` 开始
+
+```shell
+$ expr substr "abcdefg" 1 2
+ab
+```
+
+* `echo`：${str:开始索引} 或 echo ${str:开始索引:长度}  ，索引从 `0` 开始：
+
+```shell
+$ str=abcdefg;echo ${str:0:2}
+ab
+```
 
 ## awk
 
@@ -85,4 +109,39 @@ cat diamond.csv | grep -iv test |  awk -F ',' '{if($2>=5000)print }' | wc -l
 ps aux | grep -i mysql
 netstat -apn  | grep -i mysqld 
 lsof -i:端口号
+```
+
+* `shel` 的多进程，如下所示，然后就可以读取了，不读取的话，会一直阻塞
+
+```shell
+mkfifo fifofile
+echo data > fifofile
+```
+
+* 杀死僵尸进程
+
+用 `ps + grep` 命令寻找僵尸进程：
+
+```shell
+ps -A -ostat,ppid,pid,cmd | grep -e '^[Zz]'
+```
+命令注解：
+
+`-A`：参数列出所有进程
+
+`-o`： 自定义输出字段 我们设定显示字段为 `stat`（状态）, `ppid`（进程父 `id`）,` pid` (进程 `id`)，`cmd`（命令）这四个参数
+
+因为状态为  `z` 或 `Z` 的进程为僵尸进程，所以我们使用 `grep` 抓取 `stat` 状态为 `zZ` 进程，再 `kill -HUP $PID`，如果 `kill` 子进程的无效，可以尝试 `kill` 其父进程来解决。
+
+## wget 使用
+
+* 整站下载：http://fosswire.com/post/2008/04/create-a-mirror-of-a-website-with-wget/
+
+```shell
+wget --convert-links --recursive -l inf -N -e robots=off -R -nc  --default-page=index.html -E -D$URL1,$URL2,$URL0 --page-requisites  -B$URL0 -X$URL1,$URL2 --cut-dirs=1 -I*/wp-content/uploads/*, -H -F $URL www.douban.com
+```
+* 断点续传
+
+```shell
+wget -r -P /download/location -A jpg,jpeg,gif,png http://www.site.here
 ```
