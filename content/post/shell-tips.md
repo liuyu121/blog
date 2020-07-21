@@ -4,6 +4,7 @@ date: 2014-09-18T19:51:01+08:00
 draft: false
 categories: ["Shell"]
 tags: ["shell"]
+typora-root-url: ../../static
 ---
 
 
@@ -68,6 +69,41 @@ vim set nobomb
 
 ## 字符串
 
+### spli
+
+* `tr`：先分割：
+
+```shell
+#!/usr/bin/env bash
+
+IN="zhangsan@gmail;lisi@qq.com"
+
+arr=$(echo $IN | tr ";" "\n")
+
+for x in $arr
+do
+    echo "> [$x]"
+done
+```
+
+* 借助系统输出分割符：`IFS`：默认为 "\n"，修改成 `;` 即可：
+
+```shell
+#!/usr/bin/env bash
+
+IN="zhangsan@gmail;lisi@qq.com"
+
+OIFS=$IFS
+IFS=';'
+arr2=$IN
+for x in $arr2
+do
+    echo "> [$x]"
+done
+
+IFS=$OIFS
+```
+
 ### substr
 
 * `awk`：使用 `substr`(源字符串,开始索引,长度)  ，索引以 `0` 开始：
@@ -101,6 +137,8 @@ cat diamond.csv | grep -iv test |  awk -F ',' '{if($2>=5000)print }' | wc -l
 
 ## 进程
 
+* 查看进程正在进行的工作：`pstack $PID`
+
 * 查看进程端口的占用
 
 ```shell
@@ -133,7 +171,7 @@ ps -A -ostat,ppid,pid,cmd | grep -e '^[Zz]'
 
 因为状态为  `z` 或 `Z` 的进程为僵尸进程，所以我们使用 `grep` 抓取 `stat` 状态为 `zZ` 进程，再 `kill -HUP $PID`，如果 `kill` 子进程的无效，可以尝试 `kill` 其父进程来解决。
 
-## wget 使用
+## wget
 
 * 整站下载：http://fosswire.com/post/2008/04/create-a-mirror-of-a-website-with-wget/
 
@@ -145,3 +183,8 @@ wget --convert-links --recursive -l inf -N -e robots=off -R -nc  --default-page=
 ```shell
 wget -r -P /download/location -A jpg,jpeg,gif,png http://www.site.here
 ```
+
+## bash_profile、bashrc 区别
+
+![](/img/profile-bashrc-diff.png)
+
