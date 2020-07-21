@@ -55,7 +55,7 @@ typora-root-url: ../../static
 
 自此，我们可以认为双方进入 `ESTABLISHED` 状态，全双工连接建立完成。但其实，这里准确的说，应该是 `client` 进入了  `ESTABLISHED` 状态，`server` 是否成功还取决于当前 `accept queue` 的情况，下面会具体分析。
 
-需要注意的是，上面的流程中，并没有真正的发送数据，双方只是进行一系列序列号交换的握手操作。
+需要注意的是，上面的流程中，并没有真正的发送数据（最后一次握手客户端可以携带数据），双方只是进行一系列序列号交换的握手操作。
 
 整体示意图如下：
 ![](/img/tcp-connect.jpeg)
@@ -192,7 +192,28 @@ tcp-backlog 511
 
 	* 此时，`client`  进入 `TIME_WAIT` 状态，等待一段时间后，关闭连接；`server` 收到 `ACK`  关闭连接；
 
+```
+		TCP A                                                			TCP B
+
+  1.  ESTABLISHED                                          ESTABLISHED
+
+  2.  (Close)
+      FIN-WAIT-1  --> <SEQ=100><ACK=300><CTL=FIN,ACK>  --> CLOSE-WAIT
+
+  3.  FIN-WAIT-2  <-- <SEQ=300><ACK=101><CTL=ACK>      <-- CLOSE-WAIT
+
+  4.                                                       (Close)
+      TIME-WAIT   <-- <SEQ=300><ACK=101><CTL=FIN,ACK>  <-- LAST-ACK
+
+  5.  TIME-WAIT   --> <SEQ=101><ACK=301><CTL=ACK>      --< CLOSED
+
+  6.  (2 MSL)
+      CLOSED
+```
+
 关闭一个 `tcp`  链接的流程图如下：
+
+![](/img/tcp-close.png)
 
 ## 为什么需要四次
 
