@@ -193,9 +193,9 @@ tcp-backlog 511
 	* 此时，`client`  进入 `TIME_WAIT` 状态，等待一段时间后，关闭连接；`server` 收到 `ACK`  关闭连接；
 
 ```
-		TCP A                                                			TCP B
+	TCP A                                   	TCP B
 
-  1.  ESTABLISHED                                          ESTABLISHED
+  1.  ESTABLISHED                                       ESTABLISHED
 
   2.  (Close)
       FIN-WAIT-1  --> <SEQ=100><ACK=300><CTL=FIN,ACK>  --> CLOSE-WAIT
