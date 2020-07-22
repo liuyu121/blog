@@ -24,11 +24,11 @@ typora-root-url: ../../static
 
 其中，在日常分析 `tcp` 的建立与关闭时，主要关注的是在 `FLAGS `字段，该字段也即所谓的 `tcp 状态机`，主要有如下字段（大写表示，与序列号区分开）：
 
-* `SYN`：`Synchronize Sequence Numbers`，同步序列号，表示建立连接。
-* `FIN`：表示关闭连接。
-* `ACK`：`Acknowledge Sequence Numbers`，确认序列号，表示响应。
-* `PSH`： `push`，表示当前正在传输数据
-* `RST`： `reset`，表示连接重置。
+* `SYN`：`Synchronize`，表示建立连接。
+* `FIN`：`Finish`，表示关闭连接。
+* `ACK`：`Acknowledge`，表示确认。
+* `PSH`： `Push`，表示当前正在传输数据
+* `RST`： `Reset`，表示连接重置。
 
 然后，有两个重要的 `32位` 序列号：
 
@@ -83,13 +83,13 @@ typora-root-url: ../../static
 
 * `client` 先后发送了两次 `SYN`，第一个 `SYN` 延时了，第二个 `SYN` 先行到达 `server`；
 
-* 此后双方建立了连接，传输数据，关闭连接；
+* 此后双方基于第二个 `SYN` 建立了连接，传输数据，关闭连接；
 
-* 这时，延时的第一个 `SYN` 又到了 `server`，然后 `server` 回复 `ACK`，又进入了 `ESTABLISHED`。但其实这是个无效的报文，建立了一个多余的连接。
+* 这时，延时的第一个 `SYN` 又到了 `server`，然后 `server` 回复 `ACK`，又进入了 `ESTABLISHED`。但这时  `client` 不会接收这个 `ACK`，更不会发送数据了，所以导致 `server` 一直处于等待数据传输状态，直至被内核关闭。
 
-* 而如果使用 `三次握手` 机制，此时  `client` 可以直接丢弃该无效报文，而 `server` 收不到 `client` 的 `ACK`，也不会建立连接。
+* 而如果使用 `三次握手` 机制，此时  `server` 收不到 `client` 的 `ACK`，也不会建立连接。
 
-为什么不是 `4` 次握手 呢，但这里我们已经知道最少需要 `3` 次就已经可以建立了，所以，为什么还要多一次呢，浪费资源 。。。
+为什么不是 `4` 次握手 呢，因为 `TCP` 协议允许同时发送 `ACK + SYN`，也即握手的第二步。然后通过以上分析，这里我们已经知道最少需要 `3` 次就已经可以建立了，所以，为什么还要多一次呢，浪费资源 。。。
 
 ## backlog 是什么
 
@@ -170,6 +170,48 @@ tcp-backlog 511
 
 所以， `php-fpm` 的就设置为 `nginx` 一样，`511`，因为内核源码的判断条件是 `>`，因而这些常见的应用最多能 `accept 512` 个请求。
 
+# KeepAlive
+
+也即 `keep TCP alive`，因为 `TCP` 本质是基于 `传输层` 建立的连接，对 `链路层` 而言，只是，很多硬件设备会主动断开不活跃的连接，比如几大运营商、一些中间网络设备、甚至代理服务器等，都会主动 `drop` 一定时间不活跃的链接。
+
+比如 `nginx`，默认 `75s` 关闭连接，但这里是基于 `http keep alive` 设置的：
+
+```
+Syntax:	keepalive_timeout timeout [header_timeout];
+Default:	
+keepalive_timeout 75s;
+Context:	http, server, location
+The first parameter sets a timeout during which a keep-alive client connection will stay open on the server side. The zero value disables keep-alive client connections. The optional second parameter sets a value in the “Keep-Alive: timeout=time” response header field. Two parameters may differ.
+
+The “Keep-Alive: timeout=time” header field is recognized by Mozilla and Konqueror. MSIE closes keep-alive connections by itself in about 60 seconds.
+```
+
+此外，而且上层程序也需要对当前的连接进行探活，下面看 `reids` 的相关配置：
+
+```
+# Close the connection after a client is idle for N seconds (0 to disable)
+timeout 0
+
+
+# TCP keepalive.
+#
+# If non-zero, use SO_KEEPALIVE to send TCP ACKs to clients in absence
+# of communication. This is useful for two reasons:
+#
+# 1) Detect dead peers.
+# 2) Take the connection alive from the point of view of network
+#    equipment in the middle.
+#
+# On Linux, the specified value (in seconds) is the period used to send ACKs.
+# Note that to close the connection the double of the time is needed.
+# On other kernels the period depends on the kernel configuration.
+#
+# A reasonable value for this option is 300 seconds, which is the new
+# Redis default starting with Redis 3.2.1.
+tcp-keepalive 300
+```
+
+也即，对于 `redis` 来说，为了避免太多空闲的 `client`，最大化利用性能
 # 关闭
 
 我们使用 `client` 表示主动发起关闭方，`server` 表示被动响应关闭方。
@@ -240,13 +282,22 @@ tcp-backlog 511
 
 ![](/img/tcp.png)
 
-下面有一些有用到文章，都是干货。
+参考：
 
 * [wikipedia - TCP](https://en.wikipedia.org/wiki/Transmission_Control_Protocol)
+
 * [How TCP backlog works in Linux](http://veithen.io/2014/01/01/how-tcp-backlog-works-in-linux.html)
+
 * [How TCP backlog works in Linux - 中文翻译](https://www.cnblogs.com/grey-wolf/p/10999342.html)
-* [就是要你懂TCP--半连接队列和全连接队列]([https://plantegg.github.io/2017/06/07/%E5%B0%B1%E6%98%AF%E8%A6%81%E4%BD%A0%E6%87%82TCP--%E5%8D%8A%E8%BF%9E%E6%8E%A5%E9%98%9F%E5%88%97%E5%92%8C%E5%85%A8%E8%BF%9E%E6%8E%A5%E9%98%9F%E5%88%97/](https://plantegg.github.io/2017/06/07/就是要你懂TCP--半连接队列和全连接队列/))
+
+* [TCP-Keepalive-HOWTO](http://www.tldp.org/HOWTO/html_single/TCP-Keepalive-HOWTO/)
+
+* [半连接队列和全连接队列]([https://plantegg.github.io/2017/06/07/%E5%B0%B1%E6%98%AF%E8%A6%81%E4%BD%A0%E6%87%82TCP--%E5%8D%8A%E8%BF%9E%E6%8E%A5%E9%98%9F%E5%88%97%E5%92%8C%E5%85%A8%E8%BF%9E%E6%8E%A5%E9%98%9F%E5%88%97/](https://plantegg.github.io/2017/06/07/就是要你懂TCP--半连接队列和全连接队列/))
+
 * [从一次 Connection Reset 说起，TCP 半连接队列与全连接队列](https://cjting.me/2019/08/28/tcp-queue/)
+
 * [TCP 半连接队列和全连接队列满了会发生什么？又该如何应对？](https://www.cnblogs.com/xiaolincoding/p/12995358.html)
 
 * [TCP SOCKET中backlog参数的用途是什么？](https://www.cnxct.com/something-about-phpfpm-s-backlog/)
+
+* [详解Nginx中HTTP的keepalive相关配置](https://blog.51cto.com/welcomeweb/1931087)
