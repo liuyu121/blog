@@ -190,7 +190,7 @@ The “Keep-Alive: timeout=time” header field is recognized by Mozilla and Kon
 
 ```
 # Close the connection after a client is idle for N seconds (0 to disable)
-timeout 0
+timeout 0	
 
 
 # TCP keepalive.
