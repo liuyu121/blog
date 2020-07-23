@@ -260,6 +260,10 @@ tcp-keepalive 300
 
 * 如果是调用 `shutdown 函数` 主动关闭，`TCP` 允许在半关闭的连接上长时间传输数据，处于 `FIN_WAIT_1` 或 `FIN_WAIT_2` 状态下的连接，不是孤儿连接，进程仍然可以继续接收数据。
 
+* 存在一种特殊情况：被动关闭方收到 `FIN` 后立即调用 `close`，那么可能会发出一个 `ACK+FIN` 报文，这样就会少一次挥手。
+
+* 如果双方同时 `close`，双方都认为自己是 `主动关闭方`，都进入了 `FIN_WAIT_1`，然后都得到了对方的 `FIN`，此时双方会进入 `CLOSING` 状态，该状态同 `LAST_ACK` 情况相似。
+
 ## 参数调优
 
 ### 主动关闭方
@@ -305,7 +309,19 @@ net.ipv4.tcp_orphan_retries = 0
 ## 一般设置为 30s，所以 2MSL 就为 1 分钟了
 net.ipv4.tcp_fin_timeout = 30
 ```
-`linux` 下，提供了 `net.ipv4.tcp_max_tw_buckets` 参数来控制 `TIME_WAIT` 的连接数量，超过后，新关闭的连接就不再经历 `TIME_WAIT` 而直接关闭。如果服务器的并发连接增多时，`TIME_WAIT` 状态的连接数也会变多，此时就应当调大 `tcp_max_tw_buckets`，减少不同连接间数据错乱的概率。因为系统的内存和端口号都是有限的，还可以让新连接复用 `TIME_WAIT` 状态的端口，配置 `net.ipv4.tcp_tw_reuse = 1`，同时需要双方都把 `net.ipv4.tcp_timestamps = 1`。
+`linux` 下，提供了 `net.ipv4.tcp_max_tw_buckets` 参数来控制 `TIME_WAIT` 的连接数量，超过后，新关闭的连接就不再走 `TIME_WAIT` 阶段，而是直接关闭。如果服务器的并发连接增多时，`TIME_WAIT` 状态的连接数也会变多，此时就应当调大 `tcp_max_tw_buckets`，减少不同连接间数据错乱的概率。因为系统的内存和端口号都是有限的，还可以让新连接复用 `TIME_WAIT` 状态的端口，配置 `net.ipv4.tcp_tw_reuse = 1`，同时需要双方都把 `net.ipv4.tcp_timestamps = 1`。
+
+### 被动关闭方
+
+被动关闭方收到 `FIN` 后进入 `CLOSE_WAIT` 状态，此时连接处于半关闭状态，**内核等待进程主动调用 `CLOSE` 关闭连接**，触发 `FIN` 给主动关闭方。如果系统中存在大量的 `CLOSE_WAIT`，说明是程序出现了问题，可以从这方面入手，比如在 `read == 0` 后忘记调用 `close` 等。
+
+被动关闭发发出 `FIN` 后，进入 `LAST_ACK`，此时如果一直没收到对方的 `ACk`，也会重试，策略和上面提到的主动关闭发重发 `FIN` 策略一致。
+
+查看当前网络状态分布：
+
+```shell
+netstat -n | awk '/^tcp/ {++S[$NF]} END {for(a in S) print a, S[a]}'
+```
 
 ## 流程图
 
