@@ -28,7 +28,7 @@ typora-root-url: ../../static
 * `FIN`：`Finish`，表示关闭连接。
 * `ACK`：`Acknowledge`，表示确认。
 * `PSH`： `Push`，表示当前正在传输数据
-* `RST`： `Reset`，表示连接重置。
+* `RST`： `Reset`，表示连接重置，一方可以主动发送该状态断开连接。
 
 然后，有两个重要的 `32位` 序列号：
 
@@ -151,7 +151,6 @@ sets the backlog parameter in the listen() call that limits the maximum length f
 # in order to get the desired effect.
 tcp-backlog 511
 ```
-
 * `php-fpm`：默认为 `511`
 
 ```
@@ -216,23 +215,23 @@ tcp-keepalive 300
 
 我们使用 `client` 表示主动发起关闭方，`server` 表示被动响应关闭方。
 
+## 四次挥手
+
 关闭一个 `TCP` 连接，大致流程如下：
 
-* 1、`client` 发送请求关闭连接的报文，其中 `FIN = 1, seq = x`。
+* 1、`client` 调用  `close` 发送请求关闭连接的 `FIN` 报文，此后，`client` 进入 `FIN_WAIT_1` 状态。 
   
-  * 此时，`client` 进入 `FIN_WAIT_1` 状态。 
-  
-* 2、`server` 收到 `FIN` 报文后，发送一个 `ACK = 1, ack = x+1`，表示已经收到了关闭的请求。注意，这里不是立即关闭，因为此时可能还要别的数据要接收、处理等。
-  
-  * 此时，`server` 进入 `CLOSE_WAIT` 状态；`client` 收到 `ACK` 后 进入 `FIN_WAIT_2` 状态。
-  
-* 3、`server` 处理完了当前工作，可以关闭了，发送一个 `FIN = 1, seq = y` 的报文，然后等待 `client` 的响应，就可以关闭当前连接了。
+* 2、`server` 收到 `FIN` 报文后，内核自动回复 `ACK`，然后连接进入 `CLOSE_WAIT` 状态。该状态表示该连接正在等待进程调用 `close` 关闭，此时，进程可能还有别的事情要处理。
 
-  * 此时，`server` 进入 `LAST_ACK` 状态。
+	* `client` 收到 `ACK` 后，进入 `FIN_WAIT_2` 状态，表示等待 `server` 主动关闭连接。此时，实际上 `client` 的**发送通道已经关闭了，但连接还未关闭**。
   
-* 4、`client` 收到 `FIN` 报文，发送一个 `ACK = 1, seq = y+1`，此时 
+* 3、当 `server` 进入 `CLOSE_WAIT` 状态时，进程继续 `read` 时会返回 `0`，通常的处理逻辑是在这个 `if (read() == 0)` 下调用 `close`，触发内核发送 `FIN` 报文，此时状态变为 `LAST_ACK`。
 
-	* 此时，`client`  进入 `TIME_WAIT` 状态，等待一段时间后，关闭连接；`server` 收到 `ACK`  关闭连接；
+* 4、`client` 收到这个 `FIN` 后，内核会自动回复 `ACK`，然后连接进入 `TIME_WAIT` 状态，然后继续等待 `2MSL` 后关闭连接。
+
+	* `server` 收到 `ACK` 后，关闭连接，至此，双方都成功关闭。
+
+大体流程如下：
 
 ```
 	TCP A                                   	TCP B
@@ -253,6 +252,63 @@ tcp-keepalive 300
       CLOSED
 ```
 
+这里，需要强调的是：
+
+* `TCP` 必须保证报文是有序发送的，`FIN` 报文也需要遵循这个规则，当 `发送缓冲区`还有数据没发送时，`FIN` 报文不能提前发送。
+
+* 如果是调用  `close 函数` 主动关闭，处于 `FIN_WAIT_1` 或 `FIN_WAIT_2` 状态下的连接，则会成为 `孤儿连接`，通过  `netstat  -anp | grep -i fin` 查看，是看不到 `进程` 相关信息的。这时，即便对方继续传输数据，进程也接收不到了。也即，**这个连接已经和之前所属的进程无关了**。
+
+* 如果是调用 `shutdown 函数` 主动关闭，`TCP` 允许在半关闭的连接上长时间传输数据，处于 `FIN_WAIT_1` 或 `FIN_WAIT_2` 状态下的连接，不是孤儿连接，进程仍然可以继续接收数据。
+
+## 参数调优
+
+### 主动关闭方
+
+看完上面的流程，针对主动关闭方，就会有些疑问了，比如，假设 `client` 一直没收到 `ACK` 怎么办，会一直处于 `FIN_WAIT_1` 状态吗？`client`  处于 `TIME_WAIT` 后如何处理？`server` 到底什么时候真正关闭连接？
+
+下面逐个状态具体分析。
+
+* `FIN_WAIT_1`
+
+如果  `client` 一直没收到 `ACK`，也就会一直处于 `FIN_WAIT_1`  状态。此时，内核会根据 `net.ipv4.tcp_orphan_retries` 的配置定时重发 `FIN`，直至重试失败，直接关闭。该参数会对所有处于 `FIN_WAIT_1` 的连接生效，不仅仅是 `孤儿连接`，默认重试发送 `8` 次，也即如果没收到 `ACK`，主动关闭方会发送 `9` 次 `FIN` ！至于这个定时时间是多久，取决于当前的 `RTO`，一般是经过采样然后加权计算出来的。
+
+```shell
+## 这里，默认为 0，表示取默认值 8
+net.ipv4.tcp_orphan_retries = 0
+
+## 默认值参见头文件 /usr/include/netinet/tcp.h 定义
+#define TCP_LINGER2	 8	/* Life time of orphaned FIN-WAIT-2 state */
+```
+所以，如果服务器有大量的 `FIN_WAIT_1`，可以考虑减少 `net.ipv4.tcp_orphan_retries` 的值，避免过多的重试。
+
+在 `FIN_WAIT_1` 状态下，还有一个很重要的参数：`net.ipv4.tcp_max_orphans`，用来控制系统所维持的该状态下连接数的最大值。如果孤儿连接数量大于该值，新增的孤儿连接将不再走四次挥手过程，而是直接发送  `RST` 报文强制关闭该连接。
+
+该参数主要是用来防范恶意攻击，比如攻击者恶意构造 `接收窗口为 0` 的报文，因为 `TCP` 的流量控制策略，此时不能继续发送数据了，导致 `FIN` 无法发送，然后越来越多的连接一直处于 `FIN_WAIT_1` 状态，最终系统不可用。
+
+* `FIN_WAIT_2`
+
+前面已经提到，`shutdown`、`close` 的关闭模式不一样，前者关闭，连接可以一直处于 `FIN_WAIT_2`  状态了；而 `close` 下的关闭，这个状态不能存在太久，取决于 `net.ipv4.tcp_fin_timeout` 参数的配置，其实这个参数控制的就是有名的 `MSL`。如果一直没收到对端发送的 `FIN`，在超过这个时间后， 这个连接会被直接关闭。
+
+* `TIME_WAIT`
+
+从四次挥手的过程，可以知道，`client` 收到 `server` 的 `FIN` 后，进入 `TIME_WAIT`，然后需要等待 `2MSL` 也即 `2 * net.ipv4.tcp_fin_timeout` 时间，再关闭连接。
+
+为什么要等 `2MSL` 这么多时间呢？
+
+从 `server` 的视角去看，发送 `FIN` 后，连接处于 `LAST_ACK` 状态，等待 `client` 的 `ACK`，再关闭连接。如果这个 `ACK` 没有到达，同样的，`server` 会根据 `net.ipv4.tcp_orphan_retries` 的配置定时重发，直至收到 `ACK` 或重试次数到达上限，再关闭该连接。
+
+如果 `client`在发送 `ACK` 后就关闭连接，释放的端口可能被复用于新的连接，但上面提到，`server` 可能会重发 `FIN`，就干扰了新建的连接。所以需要在 `TIME_WAIT`  下保留一段时间，防止 `server` 的 `FIN` 重发，以及其他可能的数据重发，避免数据错乱。
+
+至于为什么是 `2 倍` 的 `MSL`，而不是更多倍呢，这就是在设计时的一种平衡了。`2MSL` 下，允许对方重发一次，而如果超过 `2` 次都丢弃了，说明网络本身状况很糟糕，与其继续等待，不如主动关闭。所以与 `FIN_WAIT_2`  一样，都会在该状态下保存 `2MSL` 的时长。
+
+```shell
+## 一般设置为 30s，所以 2MSL 就为 1 分钟了
+net.ipv4.tcp_fin_timeout = 30
+```
+`linux` 下，提供了 `net.ipv4.tcp_max_tw_buckets` 参数来控制 `TIME_WAIT` 的连接数量，超过后，新关闭的连接就不再经历 `TIME_WAIT` 而直接关闭。如果服务器的并发连接增多时，`TIME_WAIT` 状态的连接数也会变多，此时就应当调大 `tcp_max_tw_buckets`，减少不同连接间数据错乱的概率。因为系统的内存和端口号都是有限的，还可以让新连接复用 `TIME_WAIT` 状态的端口，配置 `net.ipv4.tcp_tw_reuse = 1`，同时需要双方都把 `net.ipv4.tcp_timestamps = 1
+
+## 流程图
+
 关闭一个 `tcp`  链接的流程图如下：
 
 ![](/img/tcp-close.png)
@@ -261,17 +317,15 @@ tcp-keepalive 300
 
 相同的问题来了，为什么需要 `4` 次挥手呢，而不是 `3` 、`5` 次？
 
-其实本质原因与需要 `3次握手` 类似，因为 `TCP` 是一个 `全双工`（`full-duplex`）的协议。
+其实本质原因与需要 `3次握手` 类似，因为 `TCP` 是一个 `全双工`（`full-duplex`）的协议，通道双方互相独立。当 `client` 关闭连接时，`server` 仍然可以在不调用  `close`  函数的状态下，继续发送数据，此时连接处于 `半关闭状态`。
 
-* `1` 次肯定不行，`client` 根本不确定对方是否收到了自己的 `FIN`，直接关闭太简单粗暴
-* `2` 次的话，`server` 不能保证能立即关闭，因为其需要一个处理当前逻辑的时间
-* `3`次时，同理，`server` 也不能保证 `client` 收到了自己的 `FIN`
+* `1` 次肯定不行，`client` 根本不确定对方是否收到了自己的 `FIN`，直接关闭太简单粗暴，除非发送 `RST`。
+* `2` 次的话，`server` 不能保证能立即关闭，因为其可能需要继续处理、发送数据等。
+* `3`次时，同理，`server` 也不能保证 `client` 收到了自己的 `FIN`。
 
 所以，因为是 `全双工`，所以一来一回`*2`，最少需要`4次` 握手机制，才能保证一个连接正确关闭。
 
-## TIME_WAIT 与 CLOSE_WAIT
-
-`TIME_WAIT` 与 `CLOSE_WAIT` 应该是 `web` 服务中，最常见的几个 `TCP` 状态，通常，也是我们需要重点关注的网络指标。
+在 `web` 应用中，大多情况下，**服务器才是主动关闭连接的一方**，比如 `nginx`。这是因为 `HTTP` 消息是单向传输协议，服务器接收完请求才能生成响应，发送完响应后就会立刻关闭 `TCP` 连接，及时释放资源，才能够承载更多的用户请求。
 
 # 代码示例
 
