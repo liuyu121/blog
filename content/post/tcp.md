@@ -93,7 +93,7 @@ typora-root-url: ../../static
 
 ## backlog 是什么
 
-在上面的示意图中，我们可以看到，`server` 端有两个 `queue`：`syn queue`、`accept queue`，其含义为:
+在上面的示意图中，我们可以看到，`server` 端有两个 `queue`：`syn queue`、`accept queue`，其含义为：
 
 * `syn queue`：半连接队列（`Half-open Connection`)。当 `server` 收到 `SYN` 报文后（`>=1` 个），内核需要维护这些连接，所以需要一个队列保存下来，也即这里的 `syn queue`，同时发送 `SYN+ACK` 给 `client`。
   * 队列未满：加入到 `sync queue`。
@@ -305,7 +305,7 @@ net.ipv4.tcp_orphan_retries = 0
 ## 一般设置为 30s，所以 2MSL 就为 1 分钟了
 net.ipv4.tcp_fin_timeout = 30
 ```
-`linux` 下，提供了 `net.ipv4.tcp_max_tw_buckets` 参数来控制 `TIME_WAIT` 的连接数量，超过后，新关闭的连接就不再经历 `TIME_WAIT` 而直接关闭。如果服务器的并发连接增多时，`TIME_WAIT` 状态的连接数也会变多，此时就应当调大 `tcp_max_tw_buckets`，减少不同连接间数据错乱的概率。因为系统的内存和端口号都是有限的，还可以让新连接复用 `TIME_WAIT` 状态的端口，配置 `net.ipv4.tcp_tw_reuse = 1`，同时需要双方都把 `net.ipv4.tcp_timestamps = 1
+`linux` 下，提供了 `net.ipv4.tcp_max_tw_buckets` 参数来控制 `TIME_WAIT` 的连接数量，超过后，新关闭的连接就不再经历 `TIME_WAIT` 而直接关闭。如果服务器的并发连接增多时，`TIME_WAIT` 状态的连接数也会变多，此时就应当调大 `tcp_max_tw_buckets`，减少不同连接间数据错乱的概率。因为系统的内存和端口号都是有限的，还可以让新连接复用 `TIME_WAIT` 状态的端口，配置 `net.ipv4.tcp_tw_reuse = 1`，同时需要双方都把 `net.ipv4.tcp_timestamps = 1`。
 
 ## 流程图
 
