@@ -309,9 +309,11 @@ net.ipv4.tcp_orphan_retries = 0
 ## 一般设置为 30s，所以 2MSL 就为 1 分钟了
 net.ipv4.tcp_fin_timeout = 30
 ```
-`linux` 下，提供了 `net.ipv4.tcp_max_tw_buckets` 参数来控制 `TIME_WAIT` 的连接数量，超过后，新关闭的连接就不再走 `TIME_WAIT` 阶段，而是直接关闭。如果服务器的并发连接增多时，`TIME_WAIT` 状态的连接数也会变多，此时就应当调大 `tcp_max_tw_buckets`，减少不同连接间数据错乱的概率。因为系统的内存和端口号都是有限的，还可以让新连接复用 `TIME_WAIT` 状态的端口，配置 `net.ipv4.tcp_tw_reuse = 1`，同时需要双方都把 `net.ipv4.tcp_timestamps = 1`，`tcp_timestamps` 是用来保证是按照时间顺序来传输的。
+`linux` 下，提供了 `net.ipv4.tcp_max_tw_buckets` 参数来控制 `TIME_WAIT` 的连接数量，超过后，新关闭的连接就不再走 `TIME_WAIT` 阶段，而是直接关闭。如果服务器的并发连接增多时，`TIME_WAIT` 状态的连接数也会变多，此时就应当调大 `tcp_max_tw_buckets`，减少不同连接间数据错乱的概率。
 
-而对于 `tcp_tw_recycle` 这个参数，不推荐使用，会出现数据包错乱的问题，`Linux 4.12` 后直接废弃了这个参数。
+因为系统的内存和端口号都是有限的，还可以让新连接复用 `TIME_WAIT` 状态的端口，配置 `net.ipv4.tcp_tw_reuse = 1`，这个只会对 `client` 生效，因为只有主动发起连接的一方，才会遇到端口不够的问题，一般会在 `1s` 内回收端口。同时需要双方都把 `net.ipv4.tcp_timestamps = 1`，`tcp_timestamps` 是用来保证是按照时间顺序来传输的。
+
+而对于 `tcp_tw_recycle` 这个参数，不推荐使用，会出现数据包错乱的问题，`Linux 4.12` 后直接废弃了这个参数，参见 [tcp: remove tcp_tw_recycle](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4396e46187ca5070219b81773c4e65088dac50cc)
 
 `TCP` 会缓存每个连接的最后一次时间戳（最新的），这个值在 `PAWS` 机制（`PROTECT AGAINST WRAPPED SEQUENCE NUMBERS`）迎来放置序列号环绕问题（`recycle`、`wrapped`），比如在高带宽下序列号可能就会在较短时间内重用，这样可以用这个时间戳来区分是否为合法的数据（`有序`），以及拒绝过期的数据（来自之前的连接的重复报文等）。也即，`TCP` 会拒绝四元组中 `<源ip、目的端口>` 的数据，在 `NAT` 网络下，就可能出现问题，因为多个客户端可能共用同一个出口 `IP`，但 `timestamps` 却可能不相同。这种机制的开启，取决于 `tcp_tw_recycle` 与 `tcp_timestamps` 同时开启。
 
@@ -377,3 +379,5 @@ netstat -n | awk '/^tcp/ {++S[$NF]} END {for(a in S) print a, S[a]}'
 * [详解Nginx中HTTP的keepalive相关配置](https://blog.51cto.com/welcomeweb/1931087)
 
 * [TCP timestamp](http://perthcharles.github.io/2015/08/27/timestamp-intro/)
+
+* [一个因tcp_tw_recycle引起的跨机房连接超时问题](https://zhuanlan.zhihu.com/p/35684094)
