@@ -31,21 +31,21 @@ copyright = ""            # default: author.name ↓        # 默认为下面配
   priority = 0.5
   filename = "sitemap.xml"
 
-[[menu.main]]             # config your menu              # 配置目录
-  name = "主页"
-  weight = 10
-  identifier = "home"
-  url = "/"
+#[[menu.main]]             # config your menu              # 配置目录
+#  name = "主页"
+#  weight = 10
+#  identifier = "home"
+#  url = "/"
 [[menu.main]]
   name = "文章"
   weight = 20
   identifier = "archives"
   url = "/post/"
-[[menu.main]]
-  name = "标签"
-  weight = 30
-  identifier = "tags"
-  url = "/tags/"
+#[[menu.main]]
+#  name = "标签"
+#  weight = 30
+#  identifier = "tags"
+#  url = "/tags/"
 [[menu.main]]
   name = "分类"
   weight = 40
