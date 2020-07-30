@@ -1,7 +1,7 @@
 baseURL = "https://liuyu121.github.io"
 languageCode = "en"
 defaultContentLanguage = "en"                             # en / zh-cn / ... (This field determines which i18n file to use)
-title = "日拱一卒"
+title = "日拱一卒，反求诸己"
 preserveTaxonomyNames = true
 enableRobotsTXT = true
 enableEmoji = true
