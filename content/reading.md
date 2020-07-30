@@ -1,16 +1,15 @@
 ---
-title: "看过的书"
+title: "阅读"
 date: 2020-07-20T21:48:59+08:00
 lastmod: 2020-07-20T21:48:59+08:00
 draft: false
-categories: ["Reading"]
-tags: ["reading"]
-typora-root-url: ../../static
+menu: "main"
+weight: 40
 ---
 
 
 
-看书原则：
+>  看书原则：
 
 * 力求理解本质：可以不求甚解，必须反复研读。
 * 苦下笔头：认真做笔记，悟道了，赶紧记下来。
