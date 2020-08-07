@@ -10,8 +10,9 @@ weight: 200
 Don't Look Back in Anger ...
 
 * `mysql`、`redis`、`kafka`、`es`
-* `php`、`go`、`python`、`lua`、`rust`、`shell`
+* `php`、`go`、`shell`、`python`、`lua`、`rust(???)`
 * `linux`、`mac`、`vim`
 * `data structures`、`algorithm`
+
 
 
