@@ -9,10 +9,9 @@ weight: 200
 
 Don't Look Back in Anger ...
 
-* `mysql`、`redis`、`kafka`、`es`
+* `web` 开发
 * `php`、`go`、`shell`、`python`、`lua`、`rust(???)`
-* `linux`、`mac`、`vim`
-* `data structures`、`algorithm`
-
-
-
+* `MySQL`、`Redis`、`Kafka`、`ES`
+* `gRPC`、`socket`、`TCP/IP`
+* `Linux`、`Nginx`、`Docker`、`Git`、`Vim`
+* 微服务、架构与设计
