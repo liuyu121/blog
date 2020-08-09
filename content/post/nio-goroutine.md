@@ -1,5 +1,5 @@
 ---
-title: "系统调用、进程与 IO"
+title: "进程与 IO"
 date: 2020-08-08T16:03:20+08:00
 lastmod: 2020-08-08T16:03:20+08:00
 draft: false
@@ -8,9 +8,11 @@ tags: ["go", "java"]
 typora-root-url: ../../static
 ---
 
-对于这么互联网从业者来说，`IO` 特别是 `网络 IO`从来都是大问题，尤其是在当前大行其道的 `微服务` 体系下，大厂可能有上万个微服务，某个接口可能有数十个 `RPC 调用`，还有诸如各种中间件，如各种`proxy` ，虽然可能就`几 ms` 级别的开销，但最终都是性能瓶颈所在。
+对于这么互联网从业者来说，`IO` 特别是 `网络 IO`从来都是大问题，尤其是在当前大行其道的 `微服务` 体系下，大厂可能有上万个微服务，某个接口可能有数十个 `RPC 调用`，还有诸如各种中间件、`proxy`、数据库等 ，虽然可能就`几 ms` 级别的开销，但最终都是性能瓶颈所在。
 
-在最常用的 `Linux` 下，对于 `IO` 甚至各大开源软件的技术特点的理解，我觉得可以先从大局开始了解，也就是，从 `Linux Kernel` 开始。
+有时候看一些书或文章的技术分析，觉得其实很多东西的本质是类似的，比如 `IO`  必然伴随着`系统调用`，系统调用又会牵涉到 `阻塞`、`上下文切换` 等等，而这一切又都基于 `Linux Kernel` 。下面尝试从这几方面开始，对所谓的 `多进程模型`、`多线程模型`、`协程` 等，谈谈自己的理解。
+
+注：本文所有内容基于 `Linux Only`。
 
 ## 系统调用与库函数
 
@@ -18,20 +20,20 @@ typora-root-url: ../../static
 
 比如 `fwrite` 内部是系统调用 `write`，我们可以分别查看 `man 2 write`、`man 3 fwrite` 查看，其中 `man 2` 表示 `System Calls Manual`，`man 3` 表示 `Library Functions Manual`。
 
-因为用户进程下，是无法直接操纵计算机的硬件资源等，如磁盘、网卡等待，这些都属于内核管理的范畴，也即所谓的 `保护模式`。所以当用户态进程需要使用操作系统底层功能时，需要使用库函数封装下的系统调用取告诉内核自己需要干什么。而每个系统调用，都会产生一次 `用户态 - 内核态` 的切换，也即所谓的 `CPU 上下文切换`。在某次系统调用结束后，`CPU` 会把调用结果返回给 `用户态`，这样又多了一次  `内核态 - 用户态` 的切换。
+因为用户进程下，是无法直接操纵计算机的硬件资源等，如磁盘、网卡等待，这些都属于内核管理的范畴，也即所谓的 `保护模式`。所以当用户态进程需要使用操作系统底层功能时，需要使用库函数封装下的系统调用取告诉内核自己需要干什么。而每个系统调用，都会产生一次 `用户态 - 内核态` 的切换，也即所谓的 `CPU 上下文切换`。在系统调用结束后，`CPU` 会把调用结果返回给 `用户态`，这样又多了一次  `内核态 - 用户态` 的切换。
 
-系统调用有为广义和狭义的区分，如上文提到的 `write` 是广义的系统调用范畴，也即我们平时说的系统调，`Standard C Library (libc, -lc)`。实际上其也是一个封装函数，真正调用的是 `sys_write` 函数，也即所谓狭义的系统调用。换言之，内核提供的服务称之为真正的底层系统调用，我们常说的系统调用其实是 `glibc` 对齐的封装，为什么要再次封装呢，因为这些内核服务太底层了，直接用太简单粗暴，封装一层后可以屏蔽更多细节。所以能否调用某个内核服务，还需要看当前 `glibc` 是否支持，比如 `epoll`：
+系统调用有所谓广义和狭义的区分，如上文提到的 `write` 是广义的系统调用范畴，也即我们平时说的系统调用，`Standard C Library (libc, -lc)`。实际上其也是一个封装函数，真正调用的是内核提供的 `sys_write` 函数，也即所谓狭义的系统调用。换言之，内核提供的服务称之为真正的底层系统调用，我们常说的系统调用其实是 `glibc` 对其的封装，为什么要再次封装呢，因为这些内核服务太底层了，直接调用太简单粗暴，封装一层后可以屏蔽更多细节。所以能否调用某个内核服务，还需要看当前 `glibc` 是否支持，比如 `epoll`：
 
 ```
   The epoll API was introduced in Linux kernel 2.5.44.  Support was
        added to glibc in version 2.3.2.
 ```
 
-那么系统调用到底是怎么工作的呢？其实其本质是以 `软中断` 的形式实现的，当用户态进程发起一个系统调用后， `软中断` 发生，`CPU` 进入内核态，然后根据具体的系统调用跳转到内核指定的服务，比如写文件、读 `socket` 等待，也即会调用真正的内核函数，如上面提到的 `sys_write`，最后将结果交由 `CPU` 返回给调用方的用户进程。
+那么系统调用到底是怎么工作的呢？其实其本质是以 `软中断` 的形式实现的，当用户态进程发起一个系统调用后， `软中断` 发生，`CPU` 进入内核态，然后根据具体的系统调用跳转到内核指定的服务，比如写文件、读 `socket` 等等，也即会调用真正的内核函数，如上面提到的 `sys_write`，最后将结果交由 `CPU` 返回给调用方的用户进程。
 
-## 进程与信号控制
+## 进程
 
-### 进程
+### fork
 
 我们知道，`进程` 是操作系统中程序执行最小单位，其中几个专用进程如下:
 
@@ -46,186 +48,324 @@ typora-root-url: ../../static
 ```c
 pid_t pid;
 if ((pid = fork()) < 0) {
-	// fork 出错
+    // fork 出错
 } else if (pid == 0) {
-	// 子进程处理逻辑，与父进程相对独立，如可同时修改变量
-}	else {
-	// 父进程处理逻辑
+    // 子进程处理逻辑，与父进程相对独立，如可同时修改变量
+} else {
+    // 父进程处理逻辑
 }
 // 下面是正文段，父、子进程共享，但相互独立，也即这段程序都会执行
 ```
+这里，有些问题需要思考，比如子进程退出了，父进程需不需要知道呢？或者，父进程先退出，那子进程又该如何处理呢？
 
-### 信号控制
+* 父进程在子进程前先终止，则其未终止的子进程称之为 `孤儿进程`。这些 `孤儿进程` 统一会被 `init` 进程接管。在子进程终止时，内核会逐个检查所有活动进程，以判断它是否是正要终止的进程的子进程，如果是，则将该子进程的父进程 `id` 改为 `1`，也即 `init` 进程。
 
-上一小节，我们大致讲解了下 `linux` 进程的一些知识，这里有些问题需要考量，比如子进程退出了，父进程需不需要知道呢？或者，父进程先退出，那子进程又该如何处理呢？
+* 子进程在父进程前先终止，且父进程并未对子进程的终止状态进行捕获（如使用 `wait`、`waitpid` 的系统调用），则这些已终止的子进程称之为 `僵尸进程`，仍然存在系统进程表中，占据着系统的进程描述符等资源。
 
-* 子进程在 `exit`、`return` 等调用后退出时，这个异步事件可能会发生在父进程运行的任何时间内，内核会发送一个 `SIGCHILD` 信号，该信号默认操作是忽略，父进程也可以捕获该信号，使用了 `wait` 或 `waitpid` 获取子进程状态，俩者区别是 `wait` 会阻塞父进程，`waitpid` 可配置成不阻塞模式，并做相关处理，如资源回收
-* 如果使用了 `wait` 或 `waitpid`
+注意，被 `init` 进程收养的子进程，不会变成僵尸进程，因为 `init` 进程总是会执行 `wait` 等待其所有子进程终止。
 
+### `wait` 与 `waitpid`
 
-处理子进程退出的方式一般是注册一个信号处理函数，捕捉信号 SIGCHILD 信号，然后再在信号处理函数里调用 waitpid 函数来完成子进程资源的回收。SIGCHLD 是子进程退出或者中断时由内核向父进程发出的信号，默认这个信号是忽略的。所以，如果想在子进程退出时能回收它，需要像下面一样，注册一个 SIGCHOLD 函数。
+上一小节，我们大致讲解了下 `linux` 进程的一些知识，提到了 `wait` 与 `waitpid` 这两个函数，这里再展开说下。
 
-## IO 模型
+我们知道，子进程在 `exit`、`return` 等调用后退出时，这个异步事件可能会发生在父进程运行的任何时间内，内核会发送一个 `SIGCHILD` 信号，该信号默认操作是忽略，父进程也可以注册一个信号函数捕获该，同时使用 `wait` 或 `waitpid` 获取子进程状态、`id` 等。
 
-下面主要讨论的是 `network IO`，也即网络 `IO`，一个常见的网络编程范式如下：
+下面谈谈 `wait` 与 `waitpid` 区别，两者都是成功返回 `>0` 的 `pid`，出错返回 `0`：
 
-* `signal(SIGCHLD, SIG_IGN);`
+```c
+#include <sys/wait.h>
 
-多进程并发服务器下，`fork` 的子进程接收后，一般需要主进程 `wait`、`waitpid` 等清理资源，并发服务器常常 `fork很多子进程，子进程终结之后需要服务器进程去wait清理资源。如果将此信号的处理方式设为忽略，可让内核把僵尸子进程转交给init进程去处理，省去了大量僵尸进程占用系统资源。(Linux Only)
+pid_t wait(int *stat_loc);
 
-对于某些进程，特别是服务器进程往往在请求到来时生成子进程处理请求。如果父进程不等待子进程结束，子进程将成为僵尸进程（zombie）从而占用系统资源。如果父进程等待子进程结束，将增加父进程的负担，影响服务器进程的并发性能。在Linux下可以简单地将 SIGCHLD信号的操作设为SIG_IGN。
+pid_t waitpid(pid_t pid, int *stat_loc, int options);
+```
 
+* `wait`：如果子进程已经终止，并且是一个僵尸进程，`wait` 立即返回并取得子进程的状态；否则使其调用者阻塞，直到一个子进程终止。如果该父进程you多个子进程，则在任一子进程终止时，`wait` 立即返回该终止的子进程 `id`。
 
-signal(SIGPIPE, SIG_IGN);
+* `waitpid`：除了能够提供与 `wait` 一样的功能外，还能通过设置 `pid` 参数，实现等待某一特定子进程的终止，以及实现进程组的等待等，也可以通过设置 `option` 实现作业控制，如设置为 `WNOHANG` 不阻塞，立即返回 `0`。
 
-TCP是全双工的信道, 可以看作两条单工信道, TCP连接两端的两个端点各负责一条. 当对端调用close时, 虽然本意是关闭整个两条信道,
-但本端只是收到FIN包. 按照TCP协议的语义, 表示对端只是关闭了其所负责的那一条单工信道, 仍然可以继续接收数据. 也就是说, 因为TCP协议的限制,
-一个端点无法获知对端的socket是调用了close还是shutdown.
+可使用下面的 `demo` 来测试上面的理论，如通过对父、子进程增加 `sleep` 的控制，来查看孤儿进程、僵尸进程、`wait` 的作用等。
 
-对一个已经收到FIN包的socket调用read方法,
-如果接收缓冲已空, 则返回0, 这就是常说的表示连接关闭. 但第一次对其调用write方法时, 如果发送缓冲没问题, 会返回正确写入(发送).
-但发送的报文会导致对端发送RST报文, 因为对端的socket已经调用了close, 完全关闭, 既不发送, 也不接收数据. 所以,
-第二次调用write方法(假设在收到RST之后), 会生成SIGPIPE信号, 导致进程退出.
+其中，`signal(SIGCHLD, SIG_IGN);` 是多进程服务的一个开发技巧。
 
-为了避免进程退出, 可以捕获SIGPIPE信号, 或者忽略它, 给它设置SIG_IGN信号处理函数:
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
-signal(SIGPIPE, SIG_IGN);
+// 写入文件观察
+void write_file(int num) {
+    FILE *fp;
 
-这样, 第二次调用write方法时, 会返回-1, 同时errno置为SIGPIPE. 程序便能知道对端已经关闭.
+    fp = fopen("fork.log", "a+");
+    fprintf(fp, "%d-%d-%d\n", num, getpid(), getppid());
+    fclose(fp);
+}
 
+int main(void)
+{
+    pid_t pid, pid2, wpid;
+    int status;
+  	
+    // 这里，简单粗暴的 fork 两次，
+    // 1、子进程 sleep、父进程直接退出，子进程变成孤儿进程，father 变成 init
+    // 2、子进程 exit，父进程 sleep，子进程变成僵尸进程
+    if ((pid = fork()) < 0) {
+        perror("fork error");
+    } else if (pid == 0) {
+        printf("father of pid1 = %d\n", getppid());
+        // sleep(4);
+        write_file(1);
+        exit(7);
+    } else {
+        printf("pid = %d\n", pid);
+        if ((pid2 = fork()) < 0) {
+            perror("fork error");
+        } else if (pid2 == 0) {
+            printf("father of pid2 = %d\n", getppid());
+            // sleep(4);
+            write_file(2);
+            exit(7);
+        } else {
+            printf("pid2 = %d\n", pid2);
+        }
+    }
+    
+    // 将子进程终止时产生的 SIGCHLD 信号设置为 SIG_IGN，也即忽略这些信号，让内核把僵尸子进程转交给init进程去处理，省去了大量僵尸进程占用系统资源
+    // signal(SIGCHLD, SIG_IGN);
+    // sleep(20);
+    // wait 所有子进程结束
+    while ((wpid = wait(&status)) > 0) {
+        // 注意，这里需要使用 WEXITSTATUS 宏来获取 exit status 低 8 位
+        printf("pid %d status = %d\n", wpid, WEXITSTATUS(status));
+    }
+    // printf("end \n");
+}
+```
 
+## 线程
+
+如前所说，进程是操作系统调用的最小单位，其实每个进程本质则为一个线程，也即典型的程序都可看成一个控制线程，或者称之为主线程。
+
+每个线程都包含有表示执行环境所必需的信息，如进程中标识线程的 `线程 id`、一组寄存器值、栈、调度优先级与策略、信号屏蔽字、线程私有数据等等。**一个进程的所有信息对该进程的所有线程都是共享的，包括可执行程序的代码、程序的全局内存、堆内存、栈、文件描述符等**，这句话很重要，因为这会引发一个实际工作中、面试中等常会碰到的问题 - `线程同步`。
+
+关于线程同步这个话题，本质就是**当多个控制线程共享相同的内存时，需要保证每个线程看到的是一致性数据试图**。
+
+* 如果每个线程只会读写自己的**私有数据**，不会存在一致性问题；
+* 如果共享数据都是**只读**的，不会存在一致性问题；
+* 如果对共享数据的修改是**原子性**的，不会存在一致性问题。
+
+这里解释下何为`原子性`，简而言之，`CPU` 对一个变量的写操作，一般是需要多于一个存储器访问周期的：`存储器读`与`存储器写`，也即：
+
+* 1、从内存单元读入寄存器；
+* 2、在寄存器中对便利做修改操作；
+* 3、将新值写回内存。
+
+那么，在这两个读写周期交叉内，就可能会出现不一致问题。例如，在第二步另一个线程读取了内存的值，可能不是预期想要的结果。
+
+那么有哪些常用的手段来保证这一点呢，下面简要的罗列下：
+
+* 互斥量：`mutex`，本质也是锁，实现了对共享资源的互斥访问的支持。在使用 `mutex` 时，所有线程都需要遵循相同规则来访问共享数据，否则会达不到互斥的效果，因为操作系统不会保证程序访问串行化。另外，还需要防止`死锁`的产生，比如存在两个互斥量，然后两个线程各自获得一个，都在等待对方持有的，死锁就发生了，所以需要保证互斥量的加锁顺序一致，和数据库的所谓 `2PL` 法则类似。另外，在请求互斥量时，可以带有阻塞时间，避免永远阻塞。
+
+* 读写锁：`reader-writer-lock`，读写锁与互斥量类似，但可以通过加不同的锁，实现更高的并行。这点与数据库的读写锁逻辑类似，如读锁不会阻塞读锁但会阻塞写锁，写锁则会阻塞读锁、写锁等。读多写少的场景，读写锁能大大提高并发。同样的，读写锁还可以带有超时时间，避免程序陷入永久阻塞状态。
+
+* 条件变量：`pthcread_cond_t`，一般地，条件变量都需要互斥量保护，两者配合，提供线程以无竞争方式等待条件发生，从而避免阻塞。线程在获取条件变量前，必须锁住互斥量，线程在条件未触发前处于休眠态，条件触发后可被唤醒以执行相关操作。
+
+* 自旋锁：`spin-lock` 与互斥量类似，不同之处在于它不是通过休眠使进程阻塞，而是在获取到锁之前一直处于自选状态，也即会忙等。由此可见，自旋锁的适用场景为锁被持有时间短且线程不希望花费重调度的成本。
+
+可以通过 `pthread_*` 系列函数创建线程，下面简单的 `demo` 展示了多个线程下对全局变量的操作会引发混乱等。
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include <sys/syscall.h>
+
+int counter = 0;
+
+static void *task(void *arg) {
+    int tid = (int)pthread_self();
+
+    printf("before pthread#%d counter is:%d\n", tid, counter);
+    if (counter == 0) {
+        counter++;
+    }
+    printf("after pthread#%d counter is:%d\n\n", tid, counter);
+
+    return NULL;
+}
+
+int main() {
+    printf("main-0 counter : %d\n\n", counter);
+
+    pthread_t pt1;
+    pthread_t pt2;
+    pthread_create(&pt1, NULL, task, NULL);
+    pthread_create(&pt2, NULL, task, NULL);
+
+    printf("main-1 counter : %d\n\n", counter);
+
+    pthread_join(pt1, NULL);
+    pthread_join(pt2, NULL);
+
+    printf("main-2 counter : %d\n", counter);
+
+    return 0;
+}
+```
+### 多进程与多线程对比
+
+了解了这么多后，我们可以总结出多进程模型与多线程模型的区别了：
+
+对于多进程模型，典型的如 `nginx`，其优劣在于：
+
+* 优势：
+
+	* 内核级别的隔离，也即子进程有自己独立的进程空间（`2GB`），完全复制父进程的进程数据，无需考虑数据同步的问题，不容易出错；
+	* 代码简单、逻辑清晰，与主进程充分解耦，容错性更强。
+	* 多核架构下，可实现 `CPU` 亲缘性绑定 ，从而获取更好的性能，如 `nginx` 就建议 `worker` 个数与 `CPU` 核心保持一致。
+	
+* 劣势：
+	
+	* 创建成本大，占用系统资源多，可使用 `COW` 技术减小开销；
+	* 进程调度成本较大，上下文切换成本高，无法共享内存，进程间通信较复杂。
+	* 需要额外注意僵尸进程、内存泄漏等问题。
+
+对于多线程模型，典型的如 `memcached`，其优劣在于：
+
+* 优势：
+
+	* 共享进程数据，开销小，不会浪费系统资源；
+	* 线程切换成本相对较轻量，不用切换地址空间，不用更改寄存器等，开销较小；
+	
+* 劣势：
+	
+	* 需要考虑线程同步的问题（各种锁、互斥等处理），还可能会出现伪共享、乱序执行等问题，容易出错，且不容易察觉；
+	* 存在于主进程中，其性能表现可能会引发主进程的稳定性；
+	* 线程本身也是存在开销的，线程之间的调度需要保存上下文，频繁切换会导致其成本较大，可使用线程池解决。
+
+从上面可以看出，俩者最大区别其实就是在 `数据共享` 以及通信上。
+
+## IO
+
+上面谈了这么多，本质其实想引出 `IO` 的话题，特别是 `network IO`，也即网络 `IO`。所谓  `IO`，本质也是用户进程发起一个系统调用告诉内核自己需要读取或发送数据，然后内核会从不同的设备根据该指令进行操作。如 `read`、`write`、`recvfrom` 等等。
+
+一个网络（`TCP`）的伪代码可实现如下：
 
 * `server`：
 
 ```c
-
-
-int listenfd = socket(AF_INET, SOCK_STREAM, 0);
-
-// 设置 socket 选项，INADDR_ANY 表示 0.0.0.0
-struct sockaddr_in server_addr;
-bzero(&server_addr, sizeof(server_addr));
-server_addr.sin_family = AF_INET;
-server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-server_addr.sin_port = htons(SERV_PORT);
+// 1 - create：创建 tcp socket fd
+listen_fd = socket();
 
 // 2 - bind ：绑定到指定地址和端口等
-int rt1 = bind(listenfd, (struct sockaddr *) &server_addr, sizeof(server_addr));
-if (rt1 < 0) {
-	error(1, errno, "bind failed ");
+if (!bind(listen_fd)) {
+  exit();
 }
 
-
 // 3 - listen：监听该 socket
-int rt2 = listen(listenfd, LISTENQ);
-if (rt2 < 0) {
-	error(1, errno, "listen failed ");
+if (listen(listen_fd) < 0) {
+  exit();
 }
 
 // 4 - accept：接收该 socket 的连接
-int connfd;
-struct sockaddr_in client_addr;
-socklen_t client_len = sizeof(client_addr);
-
-if ((connfd = accept(listenfd, (struct sockaddr *) &client_addr, &client_len)) < 0) {
-	error(1, errno, "bind failed ");
+if ((conn_fd = accept(listen_fd)) < 0) {
+  exit();
 }
 
-#include "lib/common.h"
-
-static int count;
-
-// 注册一个信号处理器
-static void sig_int(int signo) {
-    printf("\nreceived %d datagrams\n", count);
-    exit(0);
-}
-
-int main(int argc, char **argv) {
-		// 1 - create：创建 tcp socket fd
-    int listenfd;
-    listenfd = socket(AF_INET, SOCK_STREAM, 0);
-
-		// 设置 socket 选项，INADDR_ANY 表示 0.0.0.0
-    struct sockaddr_in server_addr;
-    bzero(&server_addr, sizeof(server_addr));
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    server_addr.sin_port = htons(SERV_PORT);
-
-		// 2 - bind ：绑定到指定地址和端口等
-    int rt1 = bind(listenfd, (struct sockaddr *) &server_addr, sizeof(server_addr));
-    if (rt1 < 0) {
-        error(1, errno, "bind failed ");
+// 5 - 消息处理
+while (true) {
+  if (fork() == 0) {
+    // 使用子进程（或线程）处理
+    while (true) {
+      // 读取 socket 数据
+      read(conn_fd);
+      // 发送数据至 socket
+      send(conn_fd);
     }
-
-		// 3 - listen：监听该 socket
-    int rt2 = listen(listenfd, LISTENQ);
-    if (rt2 < 0) {
-        error(1, errno, "listen failed ");
-    }
-
-    signal(SIGINT, sig_int);
-    signal(SIGPIPE, SIG_IGN);
-
-    int connfd;
-    struct sockaddr_in client_addr;
-    socklen_t client_len = sizeof(client_addr);
-
-		// 4 - accept：接收该 socket 的连接
-    if ((connfd = accept(listenfd, (struct sockaddr *) &client_addr, &client_len)) < 0) {
-        error(1, errno, "accept failed ");
-    }
-
-		// 5 - 不断从客户端接收消息
-    char message[MAXLINE];
-    count = 0;
-    for (;;) {
-    		// 5.1 - 读取 socket 数据
-        int n = read(connfd, message, MAXLINE);
-        if (n < 0) {
-            error(1, errno, "error read");
-        } else if (n == 0) {
-            error(1, 0, "client closed \n");
-        }
-        message[n] = 0;
-        printf("received %d bytes: %s\n", n, message);
-        count++;
-
-        char send_line[MAXLINE];
-        sprintf(send_line, "Hi, %s", message);
-
-        sleep(5);
-
-			// 5.1 - 发送数据至 socket
-        int write_nc = send(connfd, send_line, strlen(send_line), 0);
-        printf("send bytes: %zu \n", write_nc);
-        if (write_nc < 0) {
-            error(1, errno, "error write");
-        }
-    }
+  }
 }
 ```
 
-所谓  `IO`，本质也是用户进程发起一个系统调用告诉内核自己需要读取或发送数据，然后内核会从不同的设备根据该指令进行操作。如 `read`、`write`、`recvfrom` 等等。
+* `client`：
+
+```c
+// 1 - create：创建 tcp socket fd
+socket_fd = socket();
+
+// 2 - connect ：连接至  server
+if (!connect(socket_fd)) {
+  exit();
+}
+
+// 3 - 从客户端接收消息
+while (true) {
+}
+```
+
+### IO 模型
 
 常见的 `IO 模型` 有：
 
-* `BIO`：同步阻塞式 `IO`，也即 `blocking IO`，默认下所有 `socket` 都为 `BIO`。用户进程发起系统调用后，会阻塞（`blocking`）。常用模型为一个请求一个进程（或线程，线程池机制）来处理。
+#### 同步阻塞式 IO
 
-* `NIO`：同步非阻塞式 `IO`，也即 `non-blocking IO`。该模式下，调用方不会被阻塞，内核会返回 `EWOULDBLOCK` 的 `errno`，表示当前没有数据可读写，用户进程可以使用 `多路复用选择器` 进行轮询。`NIO` 设置方法如下：
+同步阻塞式 `IO`，也即`BIO`（`blocking IO`），默认下所有 `socket` 都为 `BIO`。用户进程发起系统调用后，会阻塞（`blocking`）。常用模型为一个请求一个进程（或线程，线程池机制）来处理。
+
+#### 同步非阻塞式 IO
+
+同步非阻塞式 `IO`，也即 `NIO`（`non-blocking IO`)。该模式下，调用方不会被阻塞，内核会返回 `EWOULDBLOCK` 的 `errno`，表示当前没有数据可读写，用户进程可以使用 `多路复用选择器` 进行轮询。`NIO` 设置方法如下：
 
 ```c
 int flags = fcntl(m_sock, F_GETFL, 0);
 fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 ```
+这里，需要注意的是，同步非阻塞 `IO` 在通过 `recvfrom` 获取数据时，还是通过 `BIO` 方式获得，也即，两者都是 `copy data from kernel to user`。换言之，这里还是需要同步获取，进程会被 `block`。
 
-* `IO Multiplexing`：`io` 多路复用机制，最常见的如 `select`、`poll`、`epoll` 等。
+#### `IO Multiplexing`
+
+`io 多路复用` 本质是通过一种机制使得一个进程能同时等待多个 `fd`，而这些 `fd` 中任意一个进入读就绪状态时，对应的多路复用处理器就能返回。
+
+最常见的 `io` 多路复用处理器有 `select`、`poll`、`epoll` 等。`select` 与 `poll` 本质都是维护一个 `fd` 列表，并对可读、可写、异常条件进行轮询，所以时间复杂度都是 `O(n)`，俩者实质差不多，本质都是将 `自身进程` 挂到设备的等待队列中，不同的设备有不同的等待队列。当设备驱动发生自身资源可读写事件后，会唤醒其等待队列上睡眠的进程。轮询不到就进入休眠，轮询到了拷贝至用户空间。俩者区别在于：
+
+* `select`：通过传入 `fd` 最大值从而内核可以使用 `bit 位` 来区分哪些是需要检查的 `fd`。这个最大值一般不应该太大，否则内核需要轮询的无意义的 `fd` 太多，一般最大值为 `1024` 或者 `2048`。所以单个进程可监视的 `fd` 数量被限制，即能监听端口的大小受限。且每次调用都需要传入 `fd` 集合，开销较大。
+	
+* `poll`：传入一个 `pollfd` 的数组，内核以链表形式存储。所以没有最大 `fd` 限制，但多了一次从用户态拷贝数组到内核态生成链表的开销，
+
+这里，需要提到设备就绪时两种不同的触发通知方式：
+
+* 水平触发：`level-trggered`，`select`、`poll` 轮询 `fd` 时，会将满足条件（可读、可写）的 `fd` 通知至进程，比如进程可能按照 `10 kb`读取数据，但缓冲区可能有 `20 kb` 可读，那么下次轮询内核仍然会通知该进程有可读数据。
+
+* 边缘触发：`edge-triggered`，当第一次可读或可写时，才触发通知，同样的上面的例子，该进程只有在第一次收到信号通知，即便没有读完（缓冲区还剩 `10 kb`），下一次也不会被触发到。
+
+从俩者特点来看，水平触发总是能够保证数据一直可被读写，问题在于每次都需要通知，会导致整体吞吐量地下；而边缘触发，能最大程度保证并发能力，但因为只是在临界态才触发，所以需要应用程序自己保证，如使用非阻塞 `IO` 一次性读取完数据（`read` 返回 `0`，表示已经读完了；返回 `EAGAIN` 或 `EWOULDBLOCK` 错误，表示当前没有数据可读等下再来）。`epoll` 对俩者都支持，默认为水平触发。下面，重点说下 `epoll` 机制以及与上面俩者之间的区别。
+
+`epoll` 本质是基于 `事件驱动`的，所以无需轮询，其时间复杂度为 `O(1)`。具体流程为：
+
+* `epoll_create` 会创建一个 `epoll` 句柄；
+
+* `epoll_ctl` 负责监听的事件类型，在有新的需要监听的 `fd` 加入后，就将该 `fd` 拷贝至内核空间，而不是像 `select` 或 `poll` 一样每次都需要拷贝，这样就能保证每个 `fd` 只被拷贝进内核一次；
+
+* `epoll` 在注册 `fd` 时，为每一个 `fd` 指定对应的回调函数（`callback`），当设备就绪，唤醒等待队列上的等待进程时，就会调用这个回调函数，回调函数则会把就绪的 `fd` 加入一个`就绪链表` 。
+
+* `epoll_wait` 则是负责轮询该就绪链表，存在就绪的 `fd` 则处理，没有则休眠，这个过长通常很快，所以进程能在设备就绪后就感知，极大提高并发能力与吞吐量。
+
+* `epoll` 监听的 `fd` 取决于操作系统可以打开文件的最大值，可通过 `cat /proc/sys/fs/file-max` 查看，这也是为什么 `nginx` 能支持高并发的原因之一。
+
+#### 异步 IO
+
+异步 `IO` 也即 `AIO`（ `Asynchronous I/O`），该模式下，`IO` 操作其实是完全交给内核去完成，内核完成后会拷贝到用户空间，同时发送信号告诉用户进程。这个 `IO` 操作开销最小，成本最低。
+
+#### java NIO 与 goroutine
+
+最后，来谈谈个人对 `java NIO` 与 `go goroutine` 的理解。
+
+首先，俩者本质都是对 `epoll` 的封装，提供了强大的事件驱动能力和更易用的操作接口。
+
+其次，传统的 `IO` 是面向字节流的，而 `jave NIO` （`new IO`）与 `go` 下的 `goroutine` 本质是面向缓冲区的。面向缓冲区的 `IO` 有个特点，比如在一个环形缓冲区内，通过维护读指针、写指针、容量、上限等，可以实现读写分离。然后存在一个 `channel`，程序通过通道进行读写操作。以及实现了 `selector` 来调度。
+
+在 `go` 中，`goroutine` 无处不在，`main 函数` 本身也是个协程，所以可以说是每一处都是异步的。
 
 
 
-所谓 `IO`
-
-
-
- `java NIO` 相关东西，发现其与
