@@ -3,8 +3,8 @@ title: "进程与 IO"
 date: 2020-08-08T16:03:20+08:00
 lastmod: 2020-08-08T16:03:20+08:00
 draft: false
-categories: ["go"]
-tags: ["go", "java"]
+categories: ["操作系统"]
+tags: ["操作系统", "IO"]
 typora-root-url: ../../static
 ---
 
