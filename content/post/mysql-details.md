@@ -50,6 +50,8 @@ typora-root-url: ../../static
 
 `MySql` 基于 `redo log` 实现了数据恢复的功能，也即 `crash safe` 机制。因为所有为落盘的记录都在 `redo log` 中，可以通过 `redo log` 恢复。
 
+关于 `redo log`，语义上包括两部分：一是内存中的日志缓冲（`redo log buffer`)，该部分日志是易失性的；二是磁盘上的重做日志文件（`redo log file`），该部分日志是持久性的（表示事务以及提交）。
+
 这里可能有个问题，比如先 `update` 再立即 `select`，如果没设置自动提交，能否读取到该 `update` 后的新值呢？答案是可以读到的，直接读取内存即可。
 
 将 `innodb_flush_log_at_trx_commit` 参数设置成 `1`，保证每次事务的 `redo log` 都直接持久化到磁盘。
@@ -81,4 +83,6 @@ typora-root-url: ../../static
 * `delete` 操作不会直接删除，而是将 `delete` 记录标记为 `delete flag`，事务提交后，由`purge` 线程完成真正删除。
 
 * `update` 操作，如果是是主键列，先删除一行再插入一行；如果不是主键列，记录该 `update` 的反向操作。
+
+所以如果数据库很多长事务，或未提交的事务，`undo log` 将会变得巨大，因为保存了太多回滚段。
 
