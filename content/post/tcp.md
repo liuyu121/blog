@@ -374,10 +374,13 @@ netstat -n | awk '/^tcp/ {++S[$NF]} END {for(a in S) print a, S[a]}'
 
 * [TCP SOCKET中backlog参数的用途是什么？](https://www.cnxct.com/something-about-phpfpm-s-backlog/)
 
-* [详解Nginx中HTTP的keepalive相关配置](https://blog.51cto.com/welcomeweb/1931087)
-
 * [TCP timestamp](http://perthcharles.github.io/2015/08/27/timestamp-intro/)
 
 * [一个因tcp_tw_recycle引起的跨机房连接超时问题](https://zhuanlan.zhihu.com/p/35684094)
 
 * [Coping with the TCP TIME-WAIT state on busy Linux servers](https://vincent.bernat.ch/en/blog/2014-tcp-time-wait-state-linux)
+
+* [详解Nginx中HTTP的keepalive相关配置](https://blog.51cto.com/welcomeweb/1931087)
+
+* [tcp & http keep-alive 详解
+](https://www.zhuxiaodong.net/2018/tcp-http-keepalive/)
