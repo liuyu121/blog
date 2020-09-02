@@ -3,7 +3,7 @@ title: "PHP-FPM 配置与实现"
 date: 2017-05-06T11:36:13+08:00
 draft: false
 categories: ["PHP"]
-tags: ["php"]
+tags: ["PHP"]
 ---
 
 ## 配置
@@ -55,9 +55,9 @@ tags: ["php"]
 	- `php_flag`：设置一些 `php.ini` 的配置，能被 `ini_set` 覆盖
 
 ### 关于 `php-fpm status page` 的配置
- 
+
 * 使用 `Nginx`：
- 
+
 ```shell
     location ~ ^/(fpm-status|fpm-ping)$ {
         add_header Access-Control-Allow-Origin *;
@@ -70,7 +70,7 @@ tags: ["php"]
         fastcgi_intercept_errors on;
     }
 ```
- 
+
 地址形如：
 
 ```url
@@ -79,7 +79,7 @@ tags: ["php"]
 ```
 
 * 可以使用自带的 `status.html`，在该页面的 `Status URL` 填写上述地址即可：
- 
+
 ```file
 /usr/local/Cellar/php/7.3.7/share/php/fpm/status.html
 ```

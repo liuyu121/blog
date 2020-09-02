@@ -3,7 +3,7 @@ title: "Shell Tips"
 date: 2014-09-18T19:51:01+08:00
 draft: false
 categories: ["Shell"]
-tags: ["shell"]
+tags: ["Shell"]
 typora-root-url: ../../static
 ---
 

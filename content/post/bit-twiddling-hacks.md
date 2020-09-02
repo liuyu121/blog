@@ -4,7 +4,7 @@ date: 2020-07-14T19:29:40+08:00
 lastmod: 2020-07-14T19:29:40+08:00
 draft: false
 categories: ["Linux"]
-tags: ["linux"]
+tags: ["Linux"]
 
 ---
 

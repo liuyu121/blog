@@ -3,8 +3,8 @@ title: "Mysql 细节"
 date: 2020-08-10T13:29:39+08:00
 lastmod: 2020-08-10T13:29:39+08:00
 draft: false
-categories: ["MySql"]
-tags: ["MySql"]
+categories: ["MySQL"]
+tags: ["MySQL", "Database"]
 typora-root-url: ../../static
 ---
 

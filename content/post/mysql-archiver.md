@@ -3,7 +3,7 @@ title: "Mysql 归档"
 date: 2018-07-16T19:32:32+08:00
 draft: false
 categories: ["MySQL"]
-tags: ["mysql","database"]
+tags: ["MySQL","database"]
 ---
 
 
@@ -97,7 +97,7 @@ This removal operation is called a purge, and it is quite fast, usually taking t
 使用 `OPTIMIZE TABLE` 会重组表和索引的物理存储，减少对存储空间使用和提升访问表时的 `IO效率`。
 
 > 注：对每个表所做的确切更改取决于该表使用的存储引擎（`INNODB,MYISAM, ARCHIVE，NDB`）。
- 
+
 `OPTIMIZE TABLE` 会重组表数据和索引的物理页，对于减少所占空间和在访问表时优化`IO` 有效果。
 
 `OPTIMIZE` 操作会暂时锁住表，而且数据量越大，耗费的时间也越长。

@@ -4,7 +4,7 @@ date: 2020-07-09T15:36:15+08:00
 lastmod: 2020-07-09T15:36:15+08:00
 draft: false
 categories: ["ES"]
-tags: ["es"]
+tags: ["ES"]
 ---
 
 有个服务写 `es`，遇到了以下报错：

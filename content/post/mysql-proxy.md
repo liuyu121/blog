@@ -3,7 +3,7 @@ title: "Mysql Proxy"
 date: 2018-08-26T15:44:49+08:00
 draft: false
 categories: ["MySQL"]
-tags: ["mysql","database"]
+tags: ["MySQL","Database"]
 ---
 
 HA：High Available

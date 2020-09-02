@@ -3,7 +3,7 @@ title: "PHP 生成 Excel"
 date: 2014-12-12T20:10:14+08:00
 draft: false
 categories: ["PHP"]
-tags: ["php"]
+tags: ["PHP"]
 ---
 
 在 `php` 中，比如要下载一个表单，不一定必须要用诸如 `PHPExcel`，或在服务器上生成 `txt`、`csv`等文件。

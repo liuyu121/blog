@@ -4,7 +4,7 @@ date: 2020-07-07T19:53:51+08:00
 lastmod: 2020-07-07T19:53:51+08:00
 draft: false
 categories: ["Tech"]
-tags: ["tech"]
+tags: ["Tech"]
 
 ---
 

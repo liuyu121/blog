@@ -4,7 +4,7 @@ date: 2020-07-08T19:35:04+08:00
 lastmod: 2020-07-08T19:35:04+08:00
 draft: false
 categories: ["Invest"]
-tags: ["invest","量化"]
+tags: ["投资","量化"]
 ---
 
 

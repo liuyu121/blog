@@ -1,10 +1,10 @@
 ---
-title: "Boltdb 源码学习 （一）"
+title: "Boltdb 源码学习 - 基础（一）"
 date: 2020-09-02T11:04:39+08:00
 lastmod: 2020-09-02T11:04:39+08:00
 draft: false
-categories: ["go", "database"]
-tags: ["go", "BoltDB"]
+categories: ["go"]
+tags: ["go", "BoltDB", "Database"]
 typora-root-url: ../../static
 ---
 

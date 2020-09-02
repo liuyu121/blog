@@ -3,7 +3,7 @@ title: "Mysql Metadata Lock"
 date: 2019-07-31T17:24:04+08:00
 draft: false
 categories: ["MySQL"]
-tags: ["mysql","database", "mysql 锁"]
+tags: ["MySQL", "Database", "锁"]
 ---
 
 

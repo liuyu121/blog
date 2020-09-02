@@ -3,7 +3,7 @@ title: "Redis Cluster"
 date: 2019-07-02T13:26:15+08:00
 draft: false
 categories: ["Redis"]
-tags: ["redis","database"]
+tags: ["Redis","Database"]
 ---
 
 

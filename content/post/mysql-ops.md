@@ -2,8 +2,8 @@
 title: "MySQL 语句类型以及提交类型"
 date: 2017-03-16T14:18:07+08:00
 draft: false
-categories: ["Mysql"]
-tags: ["mysql","database"]
+categories: ["MySQL"]
+tags: ["MySQL","Database"]
 ---
 
 

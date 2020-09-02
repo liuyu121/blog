@@ -4,7 +4,7 @@ date: 2020-07-09T02:05:35+08:00
 lastmod: 2020-07-09T02:05:35+08:00
 draft: false
 categories: ["Algorithm"]
-tags: ["algorithm"]
+tags: ["Algorithm"]
 ---
 
 遇到链表的算法题，可以优先假设是否可以运用`双指针`策略解答，`leetcode` 上[相关题目](https://leetcode-cn.com/tag/two-pointers/)有很多，而`快慢指针`更是其中一种常见类型，其他的还有`一前一后指针`、`两端夹逼指针`，甚至 `3指针`等。
