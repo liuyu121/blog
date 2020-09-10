@@ -41,11 +41,11 @@ typora-root-url: ../../static
 
 上面提到物理内存与虚拟内存的关系，虚拟内存本质是把文件映射在物理内存中，那么操作系统是怎么管理这种映射呢？
 
-首先，操作系统会把虚拟内存与物理内存分割成大小相同的区块（`page`），通过编号将进程的各个页离散地存储在内存中（注意：内存的地址可能不是连续的），然后以该区块大小为单位进行传输。
+首先，操作系统会把虚拟内存与物理内存分割成大小相同的区块，通过编号将进程的各个页离散地存储在内存中（注意：内存的地址可能不是连续的），然后以该区块大小为单位进行传输。
 
 * `virtual page, VP`：将应用程序的逻辑地址空间分割并编号，可称之为 `page`。从进程的角度看来，它可认为自己持有一段连续的内存，进程实际运行时，可认为编号是总是从 `0` 开始的。
 
-* `physical page, PP`：对应的，也会将内存地址空间分割并编号，可称之为 `frame`。
+* `physical page, PP`：对应的，也会将内存地址空间分割并编号，也即所谓的 `frame`，是物理内存管理的单元。。
 
 然后，操作系统有一个叫做页表（`page table`）的东西，本质是一个存放在物理内存中的数据结构，其中的元素成为页表项（`PTE：page table entry`），这些条目记录了 `page` 与 `frame` 的映射关系，形如 `<page-no, frame-no>`，且有如下标记位：
 
@@ -82,14 +82,101 @@ typora-root-url: ../../static
 
 `TLB` 机制较为复杂，可查看这篇文深入理解：[TLB原理](https://zhuanlan.zhihu.com/p/108425561)
 
-#### page
+#### block、page、page cache
 
-上面提到的 `page`，常称为**内存页**，就是操作系统操作文件时的传输单位，也即操作系统都会整 `page` 大小的读取或写入，一般地，`page` 最常见的大小为 `4kb`。之所以按照 `page` 进行操作，是因为：
+先来看一个现象，文件系统为 `ext3`：
 
-* `page` 过小，页表寻址时开销较大，效率较低。所谓余额表
+```shell
+## 创建一个空文件
+$ touch empty_file
+$ stat empty_file
+  File: "empty_file"
+  Size: 0         	Blocks: 0          IO Block: 4096   普通空文件
+Device: 806h/2054d	Inode: 20716695    Links: 1
+Access: (0664/-rw-rw-r--)  Uid: (***)   Gid: (***)
+Access: 2020-09-10 15:54:02.254443022 +0800
+Modify: 2020-09-10 15:54:02.254443022 +0800
+Change: 2020-09-10 15:54:02.254443022 +0800
+
+## 创建一个空目录
+$ mkdir empty_dir
+$ stat empty_dir/
+  File: "empty_dir/"
+  Size: 4096      	Blocks: 8          IO Block: 4096   目录
+Device: 806h/2054d	Inode: 20840775    Links: 2
+Access: (0775/drwxrwxr-x)  Uid: (***)   Gid: (***)
+Access: 2020-09-10 15:54:07.320487479 +0800
+Modify: 2020-09-10 15:54:07.320487479 +0800
+Change: 2020-09-10 15:54:07.320487479 +0800
+
+## 创建一个 1字节 文件
+$ echo 1 > 1_file
+$ stat 1_file
+  File: "1_file"
+  Size: 2         	Blocks: 8          IO Block: 4096   普通文件
+Device: 806h/2054d	Inode: 20716697    Links: 1
+Access: (0664/-rw-rw-r--)  Uid: (***)   Gid: (***)
+Access: 2020-09-10 15:54:30.408690079 +0800
+Modify: 2020-09-10 15:54:30.408690079 +0800
+Change: 2020-09-10 15:54:30.408690079 +0800
+
+## 查看大小
+$ du -sh 1_file empty_file empty_dir/
+4.0K	1_file
+0	empty_file
+4.0K	empty_dir/
+```
+
+是不是有疑问，为什么空目录、`1` 个字节大小的文件占据空间 `4kb`？为什么空文件 `size=0`？`Blocks`、`IO Block` 又是什么？下面就来解答下这些疑惑。
+
+我们知道，文件都是储存在磁盘上的，磁盘的最小存储单位称之为**扇区**（`sector`），应用程序存储最小单位为字节 `Byte`。每个扇区储存 `512B`（`0.5KB`）。操作系统读取磁盘时，为了提高效率，不会逐个扇区读取，而是一次性连续读取多个扇区，即一次性读取一个**块**（`block`）。这种由多个扇区组成的**块**，是文件存取的最小单位。**块** 的大小，最常见的是 `4KB`，也即由连续八个 **扇区**组成。
+
+需要搞清楚的是，`sector` 是磁盘的存储单位，是一个物理上的概念，属于硬件范畴；而 `block` 是操作系统存储文件的单位，是一个逻辑上的抽象。所以即便文件为 `0`，也会占用一个 `block`。可通过如下方式查看：
+
+```shell
+> df -T
+Filesystem     Type   1K-blocks      Used Available Use% Mounted on
+/dev/sda1      ext4    20158332  16297168   2837164  86% /
+
+> tune2fs -l /dev/sda1 | grep -i "block size"
+Block size:               4096
+```
+
+现在可以来回答上面的问题：
+
+* `block`、`IO Block`  其实上面已经解释了，`IO Block = 4096 = 8*512` 
+
+* `unix` 哲学为一切本质都是文件，所以目录也是个文件，可以 `vim empty_dir`，打开看到的是这个目录下的所有文件\目录（这是一个递归，哈哈）等。所以其实文件是存储在目录结构里的。
+
+* 上面提到操作系统存储文件最小单位为 `block=4096`，所以在物理上会占据 `4kb`，即便空文件或字节小于该值。
+
+* 那么空文件，`size=0`，那文件信息是保存在哪里呢？这里就涉及到另外一个重要的概念：[inode](https://www.ruanyifeng.com/blog/2011/12/inode.html)，文件的元信息（创建时间、更新时间、所属组、所属用户、权限等等）都是存储在 `inode` 里，这里的 `size` 指的是文件内容大小。`inode` 才是操作系统识别一个文件的唯一标志，而不是文件名。
+
+那么 `page` 又是什么呢，其实上面已经提到了，`page` 常称为**内存页**，是操作系统用来管理内存的。其实也可以视为 `virtual blocks`，那么 `page` 与 `block` 关系是怎么回事呢？操作系统从磁盘读出的数据后，就保存在内存页中，当一个 `block` 被调入到内存，它必定要被存储在一个缓冲区中。
+
+操作系统都会整 `page` 大小的读取或写入，一般地，`page` 最常见的大小为 `4kb`，这是为什么呢？
+
+之所以按照 `page` 进行操作，是因为：
+
+* `page` 过小，页表寻址时开销较大，效率较低。
 * `page` 过大，可能会造成内存空间的浪费，导致内存碎片产生，且内存利用率较低。
 
-所以，在当时的硬件架构体系下，远古大神们权衡后，默认大小设置为了 `4kb`。
+在 `*nix` 系统的实现中，有 `buffer cache` 和 `page cahe`，`buffer cache`缓存的是文件 `inode`、`dentry` 等元信息，优化磁盘 `block I/O`，而 `page cache`由多个物理上的 `page` 组成， 缓存的则是具体的文件内容（`file` 结构体定义），优化文件 `I/O`。
+
+## page cache 与 sync 机制
+
+上一小节提到了 `page cache`，是操作系统用来 `cache file` 的，读取和写入都是按照 `page` 进行。
+
+* `read`：读取的时候，先读 `page cache`，存在则视为 `hit`，直接返回，不存在再从磁盘上按需加载至 `page cache`。
+
+* `write`：写入的时候也类似，先写 `page cache`，被修改的 `page` 称之为脏页（`dirty page`），维护在 `dirty list` 中，再自动或主动写回磁盘（`flush`），保证磁盘与内存的数据一致。自动刷盘是内核保证的，内核周期性的将 `dirty list` 的数据刷盘；主动刷盘需要调用 `sync` 函数集，详细可参考 [Linux fsync和fdatasync系统调用实现分析（Ext4文件系统）](https://blog.csdn.net/luckyapple1028/article/details/61413724)。
+
+查看自动刷盘的周期：
+
+```shell
+$ sysctl vm.dirty_expire_centisecs
+vm.dirty_expire_centisecs = 3000 ## 单位 10ms
+```
 
 ## mmap
 
