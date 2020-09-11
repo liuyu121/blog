@@ -184,7 +184,13 @@ vm.dirty_expire_centisecs = 3000 ## 单位 10ms
 
 `cow` 完整语义是 `copy on write`，也即大名鼎鼎的**写时拷贝**。顾名思义，当多个进程拷贝某份数据时，当且仅当有修改，才真正触发拷贝。思想类似于上面提到的页表加载机制，按需加载，内核拖得越久越好，可以极大提高吞吐量和性能。
 
-## B+ tree
+## 推荐阅读
 
+~~操作系统太复杂了，还涉及到硬件，这就知识盲区了~~
 
+* [虚拟内存的那点事儿](https://sylvanassun.github.io/2017/10/29/2017-10-29-virtual_memory/)
+
+* [为什么这么设计系列文章](https://draveness.me/whys-the-design/)
+
+* [Linux fsync和fdatasync系统调用实现分析（Ext4文件系统）](https://blog.csdn.net/luckyapple1028/article/details/61413724)
 
